@@ -217,7 +217,7 @@ def parse_date(date_str):
 # SOL NAVİGASYON MENÜSÜ
 # ---------------------------------------------------------
 st.sidebar.markdown("### ⚙️ EŞME MAKİNA MES")
-st.sidebar.caption("Üretim Takip & İmalat Yönetimi v3.5")
+st.sidebar.caption("Üretim Takip & İmalat Yönetimi v3.6")
 st.sidebar.divider()
 
 menu = st.sidebar.radio(
@@ -290,19 +290,19 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 </div>
             """, unsafe_allow_html=True)
             
-            # Tablo Sütun Düzenlemesi (ID gizli tutuluyor, NOTLAR en sağda)
+            # Tablo Sütun Düzenlemesi
             display_df = cust_df[['id', 'job_name', 'material', 'dimensions', 'supplier', 'quantity', 'heat_treatment', 'status', 'machine_name', 'deadline', 'notes']].copy()
 
-            # İnteraktif Tablo
+            # İnteraktif Tablo (column_order ile ID gizleniyor)
             edited_df = st.data_editor(
                 display_df,
                 key=f"editor_{customer}",
                 use_container_width=True,
                 hide_index=True,
+                column_order=["job_name", "material", "dimensions", "supplier", "quantity", "heat_treatment", "status", "machine_name", "deadline", "notes"],
                 column_config={
-                    "id": st.column_config.Column("id", disabled=True, hidden=True),  # ID GİZLENDİ
                     "job_name": st.column_config.TextColumn("İŞ", width="medium"),
-                    "material": st.column_config.TextColumn("MALZEME", width="small"), # MANUEL MALZEME
+                    "material": st.column_config.TextColumn("MALZEME", width="small"),
                     "dimensions": st.column_config.TextColumn("MALZEME ÖLÇÜLERİ", width="medium"),
                     "supplier": st.column_config.TextColumn("MALZEME SİPARİŞİ", width="small"),
                     "quantity": st.column_config.NumberColumn("ADET", width="small"),
@@ -310,7 +310,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     "status": st.column_config.SelectboxColumn("İŞLEMLER", options=STATUS_OPTIONS, required=True, width="medium"),
                     "machine_name": st.column_config.SelectboxColumn("BAĞLI TEZGAH", options=MACHINE_OPTIONS, required=True, width="medium"),
                     "deadline": st.column_config.TextColumn("TERMİN TARİHİ", width="small"),
-                    "notes": st.column_config.TextColumn("NOTLAR", width="large") # EN SAĞDA NOTLAR
+                    "notes": st.column_config.TextColumn("NOTLAR", width="large")
                 }
             )
 
@@ -520,7 +520,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
 # ---------------------------------------------------------
-# 4. AKILLI MALİYET HESABI (MANUEL KAR MARJINI İLE)
+# 4. AKILLI MALİYET HESABI
 # ---------------------------------------------------------
 elif menu == "💰 Akıllı Maliyet Hesabı":
     st.markdown("## 💰 Akıllı Malzeme Ağırlığı & Maliyet Hesabı (TL)")
