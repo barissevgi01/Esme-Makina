@@ -122,6 +122,7 @@ def init_db():
             duration_str TEXT,
             price REAL,
             drawing_path TEXT,
+            drawing_name TEXT,
             created_at TEXT,
             is_archived INTEGER DEFAULT 0
         )
@@ -148,6 +149,7 @@ def init_db():
         ('duration_str', 'TEXT'),
         ('price', 'REAL'),
         ('drawing_path', 'TEXT'),
+        ('drawing_name', 'TEXT'),
         ('is_archived', 'INTEGER DEFAULT 0')
     ]
     
@@ -230,7 +232,7 @@ def parse_date(date_str):
 # SOL NAVİGASYON MENÜSÜ
 # ---------------------------------------------------------
 st.sidebar.markdown("### ⚙️ EŞME MAKİNA MES")
-st.sidebar.caption("Üretim Takip & İmalat Yönetimi v4.0")
+st.sidebar.caption("Üretim Takip & İmalat Yönetimi v4.5")
 st.sidebar.divider()
 
 menu = st.sidebar.radio(
@@ -239,13 +241,13 @@ menu = st.sidebar.radio(
 )
 
 # ---------------------------------------------------------
-# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET
+# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET (GİRDİĞİNDE SÜRE BAŞLAR)
 # ---------------------------------------------------------
 if menu == "📊 İş Planı (Canlı Tablo)":
     st.markdown("## 📊 İŞ PLANI")
     st.caption("Aktif müşteri siparişleri ve canlı imalat durumları tablosu.")
 
-    # Yeni İş Ekleme Formu (Süre Başlamaz)
+    # Yeni İş Ekleme Formu (Otomatik Süre Başlar)
     with st.expander("➕ **Yeni İş / Parça Siparişi Ekle**", expanded=False):
         with st.form("add_job_form", clear_on_submit=True):
             col1, col2, col3 = st.columns(3)
@@ -265,18 +267,18 @@ if menu == "📊 İş Planı (Canlı Tablo)":
 
             initial_note = st.text_area("İş Notları (Opsiyonel)", placeholder="İşle ilgili özel notlar...")
 
-            submitted = st.form_submit_button("🚀 Siparişi Plana Ekle", type="primary")
+            submitted = st.form_submit_button("🚀 Siparişi Ekle ve Süreyi Başlat", type="primary")
             if submitted and cust and job:
-                create_now = datetime.now().strftime("%d.%m.%Y %H:%M")
+                now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
                 conn = get_db_connection()
                 conn.execute('''
                     INSERT INTO work_orders 
-                    (customer, job_name, material, dimensions, supplier, quantity, heat_treatment, status, machine_name, deadline, notes, created_at, is_archived)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                ''', (cust.upper().strip(), job.strip(), mat.strip(), dims.strip(), supp.strip(), qty, heat.strip(), stt, mac, ddl.strip(), initial_note.strip(), create_now))
+                    (customer, job_name, material, dimensions, supplier, quantity, heat_treatment, status, machine_name, deadline, notes, start_time, created_at, is_archived)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                ''', (cust.upper().strip(), job.strip(), mat.strip(), dims.strip(), supp.strip(), qty, heat.strip(), stt, mac, ddl.strip(), initial_note.strip(), now_str, now_str))
                 conn.commit()
                 conn.close()
-                st.success("İş sipariş planına eklendi! (Süre henüz başlatılmadı)")
+                st.success(f"İş sipariş planına eklendi! İmalat süresi başlatıldı: {now_str}")
                 st.rerun()
 
     # Veritabanından Aktif İşleri Çek
@@ -326,114 +328,104 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 }
             )
 
-            # TABLO ALTI DETAY / SÜRE VE TEKNİK RESİM KONTROL PANENLİ
-            st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-            c_sel, c_start, c_drawing, c_actions = st.columns([3, 2, 3, 3])
-            
-            with c_sel:
-                job_list = [f"{r['id']} - {r['job_name']}" for _, r in cust_df.iterrows()]
-                selected_job_str = st.selectbox("İşlem Yapılacak Parçayı Seçin:", job_list, key=f"sel_{customer}")
-                selected_id = int(selected_job_str.split(" - ")[0])
-                job_row = cust_df[cust_df['id'] == selected_id].iloc[0]
+            # TABLO DEĞİŞİKLİKLERİNİ KAYDET BUTONU
+            if st.button(f"💾 {customer} Tablo Değişikliklerini Kaydet", key=f"save_{customer}", type="primary"):
+                conn = get_db_connection()
+                for _, row in edited_df.iterrows():
+                    conn.execute('''
+                        UPDATE work_orders
+                        SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
+                        WHERE id=?
+                    ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], row['status'], row['machine_name'], row['deadline'], row['notes'], row['id']))
+                conn.commit()
+                conn.close()
+                st.toast(f"{customer} tablosu kaydedildi!", icon="✅")
+                st.rerun()
 
-            with c_start:
-                st.write("**⏱️ İmalat Süre Durumu**")
-                if not job_row['start_time']:
-                    if st.button("🚀 İş Emrini Başlat", key=f"btn_start_{selected_id}", type="primary"):
-                        now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
-                        conn = get_db_connection()
-                        conn.execute("UPDATE work_orders SET start_time = ? WHERE id = ?", (now_str, selected_id))
-                        conn.commit()
-                        conn.close()
-                        st.toast(f"İş emri başlatıldı! ({now_str})", icon="🚀")
-                        st.rerun()
-                else:
-                    st.success(f"Başlangıç: {job_row['start_time']}")
-
-            with c_drawing:
-                st.write("**📐 Teknik Resim Yükle & Aç**")
-                uploaded_file = st.file_uploader("Dosya Seç (Görsel / PDF)", type=["png", "jpg", "jpeg", "pdf"], key=f"up_{selected_id}")
-                if uploaded_file is not None:
-                    file_ext = uploaded_file.name.split(".")[-1]
-                    file_filename = f"job_{selected_id}.{file_ext}"
-                    save_path = os.path.join("uploads", file_filename)
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
+            # PARÇALARA ÖZEL DOSYA YÜKLE / İNDİR & BİTİR / SİL AÇILIR PANELİ
+            with st.expander(f"📂 {customer} - Dosya Yükle / İndir & İş Emri Bitiş/Silme İşlemleri", expanded=False):
+                for _, r in cust_df.iterrows():
+                    j_id = r['id']
+                    c_info, c_up, c_down, c_btn1, c_btn2 = st.columns([3, 3, 2, 2, 2])
                     
-                    conn = get_db_connection()
-                    conn.execute("UPDATE work_orders SET drawing_path = ? WHERE id = ?", (save_path, selected_id))
-                    conn.commit()
-                    conn.close()
-                    st.toast("Teknik resim yüklendi!", icon="📐")
-                    st.rerun()
+                    with c_info:
+                        st.write(f"**{r['job_name']}**")
+                        st.caption(f"Başlangıç: {r['start_time'] or 'Kayıtlı değil'}")
 
-                if job_row['drawing_path'] and os.path.exists(job_row['drawing_path']):
-                    with st.expander("🖼️ Yüklü Teknik Resmi Gör", expanded=False):
-                        if job_row['drawing_path'].endswith(".pdf"):
-                            st.write(f"PDF Dosyası: {job_row['drawing_path']}")
+                    with c_up:
+                        # HER TÜRLÜ DOSYA YÜKLEME (STEP, SLDPRT, DXF, PDF, ZIP vs.)
+                        up_f = st.file_uploader("Dosya Yükle", type=None, key=f"up_{j_id}", label_visibility="collapsed")
+                        if up_f is not None:
+                            original_filename = up_f.name
+                            save_filename = f"job_{j_id}_{original_filename}"
+                            save_path = os.path.join("uploads", save_filename)
+                            with open(save_path, "wb") as f:
+                                f.write(up_f.getbuffer())
+                            
+                            conn = get_db_connection()
+                            conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (save_path, original_filename, j_id))
+                            conn.commit()
+                            conn.close()
+                            st.toast(f"'{original_filename}' yüklendi!", icon="📤")
+                            st.rerun()
+
+                    with c_down:
+                        # DOSYA İNDİRME BUTTONU
+                        if r['drawing_path'] and os.path.exists(r['drawing_path']):
+                            with open(r['drawing_path'], "rb") as f_bytes:
+                                file_data = f_bytes.read()
+                            st.download_button(
+                                label=f"📥 İndir",
+                                data=file_data,
+                                file_name=r['drawing_name'] or "teknik_resim",
+                                key=f"dl_{j_id}"
+                            )
                         else:
-                            st.image(job_row['drawing_path'], caption="Yüklü Teknik Resim", use_container_width=True)
+                            st.caption("Dosya Yok")
 
-            with c_actions:
-                st.write("**⚙️ İşlem Butonları**")
-                b_save, b_fin, b_del = st.columns(3)
-                
-                with b_save:
-                    if st.button("💾 Kaydet", key=f"save_{customer}"):
-                        conn = get_db_connection()
-                        for _, row in edited_df.iterrows():
+                    with c_btn1:
+                        if st.button("🏁 İşi Bitir", key=f"fin_{j_id}"):
+                            end_now_dt = datetime.now()
+                            end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
+                            
+                            duration_calc_str = "Belirtilmedi"
+                            if r['start_time']:
+                                start_dt = parse_date(r['start_time'])
+                                if start_dt:
+                                    diff = end_now_dt - start_dt
+                                    days = diff.days
+                                    hours, remainder = divmod(diff.seconds, 3600)
+                                    minutes, _ = divmod(remainder, 60)
+                                    
+                                    parts = []
+                                    if days > 0:
+                                        parts.append(f"{days} Gün")
+                                    if hours > 0:
+                                        parts.append(f"{hours} Saat")
+                                    parts.append(f"{minutes} Dk")
+                                    duration_calc_str = " ".join(parts)
+
+                            conn = get_db_connection()
                             conn.execute('''
-                                UPDATE work_orders
-                                SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
-                                WHERE id=?
-                            ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], row['status'], row['machine_name'], row['deadline'], row['notes'], row['id']))
-                        conn.commit()
-                        conn.close()
-                        st.toast("Tablo kaydedildi!", icon="✅")
-                        st.rerun()
+                                UPDATE work_orders 
+                                SET is_archived = 1, status = 'TAMAMLANDI', machine_name = 'YOK / ATANMADI', end_time = ?, duration_str = ? 
+                                WHERE id = ?
+                            ''', (end_now_str, duration_calc_str, j_id))
+                            conn.commit()
+                            conn.close()
+                            st.toast(f"İş bitti! Süre: {duration_calc_str}", icon="🎉")
+                            st.rerun()
 
-                with b_fin:
-                    if st.button("🏁 Bitir", key=f"fin_{customer}"):
-                        end_now_dt = datetime.now()
-                        end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
-                        
-                        duration_calc_str = "Belirtilmedi"
-                        if job_row['start_time']:
-                            start_dt = parse_date(job_row['start_time'])
-                            if start_dt:
-                                diff = end_now_dt - start_dt
-                                days = diff.days
-                                hours, remainder = divmod(diff.seconds, 3600)
-                                minutes, _ = divmod(remainder, 60)
-                                
-                                parts = []
-                                if days > 0:
-                                    parts.append(f"{days} Gün")
-                                if hours > 0:
-                                    parts.append(f"{hours} Saat")
-                                parts.append(f"{minutes} Dk")
-                                duration_calc_str = " ".join(parts)
+                    with c_btn2:
+                        if st.button("🗑️ Sil", key=f"del_{j_id}"):
+                            conn = get_db_connection()
+                            conn.execute("DELETE FROM work_orders WHERE id = ?", (j_id,))
+                            conn.commit()
+                            conn.close()
+                            st.warning("İş silindi!")
+                            st.rerun()
+                    st.divider()
 
-                        conn = get_db_connection()
-                        conn.execute('''
-                            UPDATE work_orders 
-                            SET is_archived = 1, status = 'TAMAMLANDI', machine_name = 'YOK / ATANMADI', end_time = ?, duration_str = ? 
-                            WHERE id = ?
-                        ''', (end_now_str, duration_calc_str, selected_id))
-                        conn.commit()
-                        conn.close()
-                        st.toast(f"İş bitti! Geçen Süre: {duration_calc_str}", icon="🎉")
-                        st.rerun()
-
-                with b_del:
-                    if st.button("🗑️ Sil", key=f"del_{customer}"):
-                        conn = get_db_connection()
-                        conn.execute("DELETE FROM work_orders WHERE id = ?", (selected_id,))
-                        conn.commit()
-                        conn.close()
-                        st.warning("İş silindi!")
-                        st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.info("İş planında henüz aktif iş bulunmuyor. Yukarıdaki formdan yeni iş ekleyebilirsiniz.")
 
@@ -508,11 +500,11 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 3. İMALAT HAFIZASI (ARŞİV, TEKNİK RESİM & SÜRE DÖKÜMÜ)
+# 3. İMALAT HAFIZASI (ARŞİV & DOSYA İNDİRME)
 # ---------------------------------------------------------
 elif menu == "📚 İmalat Hafızası (Arşiv)":
     st.markdown("## 📚 İmalat Hafızası & Biten İşler Arşivi")
-    st.caption("Tamamlanıp arşive kaldırılan geçmiş işlerinizin detaylı dökümü, teknik resimleri, imalat süreleri ve fiyat kayıtları.")
+    st.caption("Tamamlanıp arşive kaldırılan geçmiş işlerinizin detaylı dökümü, dosyaları, imalat süreleri ve fiyat kayıtları.")
     
     conn = get_db_connection()
     df_arch = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 1 ORDER BY id DESC", conn)
@@ -537,11 +529,14 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 st.write(f"• **Isıl İşlem:** {row['heat_treatment'] or '-'}")
 
                 if row['drawing_path'] and os.path.exists(row['drawing_path']):
-                    with st.expander("🖼️ Arşivlenmiş Teknik Resmi Aç", expanded=False):
-                        if row['drawing_path'].endswith(".pdf"):
-                            st.write(f"PDF Dosyası: {row['drawing_path']}")
-                        else:
-                            st.image(row['drawing_path'], caption="Teknik Resim", use_container_width=True)
+                    with open(row['drawing_path'], "rb") as f_bytes:
+                        file_data = f_bytes.read()
+                    st.download_button(
+                        label=f"📥 Yüklü Dosyayı İndir ({row['drawing_name'] or 'Dosya'})",
+                        data=file_data,
+                        file_name=row['drawing_name'] or "teknik_resim",
+                        key=f"arch_dl_{row['id']}"
+                    )
 
             with c2:
                 st.markdown("##### ⏱️ İmalat Süre Bilgileri")
@@ -577,7 +572,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
 # ---------------------------------------------------------
-# 4. AKILLI MALİYET HESABI (TEL EREZYON & ÜNİVERSAL TEZGAH DAHİL)
+# 4. AKILLI MALİYET HESABI
 # ---------------------------------------------------------
 elif menu == "💰 Akıllı Maliyet Hesabı":
     st.markdown("## 💰 Akıllı Malzeme Ağırlığı & Maliyet Hesabı (TL)")
@@ -634,7 +629,7 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
             tel_süre = st.number_input("Tel Erezyon Süresi (Dk):", value=20)
             uni_süre = st.number_input("Üniversal Tezgah Süresi (Dk):", value=10)
         with cb:
-            rate_dik = st.number_input("Dik İşleme ($/Saat veya TL/Saat):", value=1200.0)
+            rate_dik = st.number_input("Dik İşleme (TL/Saat):", value=1200.0)
             rate_torna = st.number_input("Torna (TL/Saat):", value=1000.0)
             rate_tel = st.number_input("Tel Erezyon (TL/Saat):", value=800.0)
             rate_uni = st.number_input("Üniversal Tezgah (TL/Saat):", value=600.0)
@@ -659,7 +654,7 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
     m4.metric("Önerilen Birim Satış Fiyatı", f"{round(final_price, 2):,} TL".replace(",", "."), delta=f"%{profit_margin} Kar")
 
 # ---------------------------------------------------------
-# 5. ATÖLYE SOHBETİ / DİJİTAL HABERLEŞME
+# 5. ATÖLYE SOHBETİ
 # ---------------------------------------------------------
 elif menu == "💬 Atölye Sohbeti":
     st.markdown("## 💬 Atölye İçi Dijital Mesajlaşma & Not Panosu")
