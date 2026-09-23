@@ -27,78 +27,130 @@ st.markdown("""
     }
     
     .main .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
         padding-bottom: 2rem;
-        max-width: 96%;
+        max-width: 98%;
+    }
+
+    /* Üst Logo ve Başlık Alanı */
+    .brand-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #ffffff;
+        padding: 12px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 20px;
     }
     
+    /* Modern Kart Yapısı */
     .custom-card {
         background-color: #ffffff;
         border-radius: 12px;
         padding: 18px 22px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         border: 1px solid #e2e8f0;
         margin-bottom: 15px;
     }
     
+    /* Firma Başlık Bandı */
     .firm-header-band {
-        background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: #ffffff;
         padding: 10px 18px;
         border-radius: 8px;
         font-weight: 700;
         font-size: 1.05rem;
         letter-spacing: 0.5px;
-        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 22px;
-        margin-bottom: 10px;
+        margin-top: 18px;
+        margin-bottom: 12px;
     }
     
     .count-badge {
-        background-color: rgba(255, 255, 255, 0.25);
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: #ffffff;
-        padding: 3px 10px;
+        padding: 3px 12px;
         border-radius: 12px;
         font-size: 0.82rem;
         font-weight: 600;
     }
 
-    .file-badge-success {
-        background-color: #dcfce7;
-        color: #15803d;
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 0.88rem;
-        font-weight: 700;
-        border: 1px solid #bbf7d0;
-        display: inline-block;
-        margin-bottom: 6px;
+    /* Satır İçi İş Kartı */
+    .job-row-card {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+    }
+    .job-row-card:hover {
+        border-color: #cbd5e1;
+        background-color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    .file-badge-none {
-        background-color: #f1f5f9;
-        color: #64748b;
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 0.88rem;
-        font-weight: 600;
-        border: 1px solid #e2e8f0;
-        display: inline-block;
-        margin-bottom: 6px;
+    /* Sol Menü (Sidebar) Modernizasyonu */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+        padding-top: 1rem;
     }
     
-    [data-testid="stSidebar"] {
-        background-color: #0f172a;
-    }
     [data-testid="stSidebar"] * {
         color: #f8fafc !important;
     }
-    
+
+    [data-testid="stSidebar"] .stRadio > label {
+        font-weight: 700 !important;
+        color: #94a3b8 !important;
+        font-size: 0.85rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    /* Radio Seçeneklerini Buton/Kart Şekline Getirme */
+    [data-testid="stSidebar"] .stRadio > div {
+        gap: 6px;
+    }
+
+    [data-testid="stSidebar"] .stRadio label {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        color: #e2e8f0 !important;
+        font-weight: 500 !important;
+        font-size: 0.92rem !important;
+        transition: all 0.25s ease-in-out !important;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        margin-bottom: 2px;
+    }
+
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        transform: translateX(4px);
+    }
+
+    [data-testid="stSidebar"] .stRadio div[data-checked="true"] label {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        border-color: #60a5fa !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
     [data-testid="stMetricValue"] {
-        font-size: 1.7rem !important;
+        font-size: 1.6rem !important;
         font-weight: 700 !important;
         color: #0f172a;
     }
@@ -107,10 +159,6 @@ st.markdown("""
         border-radius: 8px;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
-    }
-    .stButton>button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -284,10 +332,23 @@ MATERIAL_DENSITIES = {
     "KURŞUN": 11.34
 }
 
-HT_SUPPLIERS = ["ALPHA", "ASTAŞ", "MERSİN ISIL İŞLEM", "DİĞER"]
-HT_PROCESSES = ["SUBZERO", "NİTRASYON", "VAKUM ISIL İŞLEM", "SEMENTASYON", "TEMPER", "ISIL İŞLEM"]
-HT_STATUSES = ["ISIL İŞLEMDE", "GELDİ / TAMAMLANDI", "FATURALANDI"]
+# GÜNCELLENEN ISIL İŞLEM LİSTELERİ
+HT_SUPPLIERS = [
+    "ALPHA ISIL İŞLEM", 
+    "ASTAŞ ISIL İŞLEM", 
+    "ÇUKUROVA ISIL İŞLEM", 
+    "VOESTALPİNE ISIL İŞLEM"
+]
 
+HT_PROCESSES = [
+    "SUBZERO+VAKUM", 
+    "VAKUM", 
+    "NİTRASYON", 
+    "İNDÜKSİYON", 
+    "SEMENTASYON"
+]
+
+HT_STATUSES = ["ISIL İŞLEMDE", "GELDİ / TAMAMLANDI", "FATURALANDI"]
 WJG_STATUSES = ["KESİMDE / GÖNDERİLDİ", "GELDİ / TAMAMLANDI", "FATURA ALINDI"]
 
 def parse_date(date_str):
@@ -300,12 +361,16 @@ def parse_date(date_str):
             pass
     return None
 
-st.sidebar.markdown("### ⚙️ EŞME MAKİNA MES")
-st.sidebar.caption("Üretim Takip & İmalat Yönetimi v6.0")
-st.sidebar.divider()
+# ---------------------------------------------------------
+# SOL MENÜ & LOGO
+# ---------------------------------------------------------
+if os.path.exists("LOGO VE İSİM.JPG"):
+    st.sidebar.image("LOGO VE İSİM.JPG", use_container_width=True)
+
+st.sidebar.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
 menu = st.sidebar.radio(
-    "Sistem Menüsü:",
+    "SİSTEM KATEGORİLERİ",
     [
         "📊 İş Planı (Canlı Tablo)",
         "🛠️ Tezgah Parkı Durumu",
@@ -317,12 +382,27 @@ menu = st.sidebar.radio(
     ]
 )
 
+st.sidebar.caption("Eşme Makina MES v6.5 • 2026")
+
 # ---------------------------------------------------------
-# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET
+# ÜST LOGO & BAŞLIK ALANI (ANA SAYFA)
+# ---------------------------------------------------------
+col_header_logo, col_header_title = st.columns([1, 4])
+with col_header_logo:
+    if os.path.exists("LOGO VE İSİM.JPG"):
+        st.image("LOGO VE İSİM.JPG", width=220)
+with col_header_title:
+    st.markdown("### ⚙️ EŞME MAKİNA MES - ÜRETİM & FASON YÖNETİM SİSTEMİ")
+    st.caption("Canlı İş Planlama, Tezgah Takibi, Isıl İşlem ve Otomatik Kayıtlı İmalat Hafızası")
+
+st.divider()
+
+# ---------------------------------------------------------
+# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET (OTOMATİK KAYITLI & SAĞDA DOSYA YÜKLE/İNDİR)
 # ---------------------------------------------------------
 if menu == "📊 İş Planı (Canlı Tablo)":
     st.markdown("## 📊 İŞ PLANI")
-    st.caption("Aktif müşteri siparişleri ve canlı imalat durumları tablosu.")
+    st.caption("Aktif müşteri siparişleri ve canlı imalat durumları. Yapılan tüm değişiklikler anında otomatik kaydedilir.")
 
     with st.expander("➕ **Yeni İş / Parça Siparişi Ekle**", expanded=False):
         with st.form("add_job_form", clear_on_submit=True):
@@ -354,7 +434,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 ''', (cust.upper().strip(), job.strip(), mat.strip(), dims.strip(), supp.strip(), qty, heat.strip(), stt, mac, ddl.strip(), initial_note.strip(), now_str, now_str))
                 conn.commit()
                 conn.close()
-                st.success(f"İş sipariş planına eklendi! İmalat süresi başlatıldı: {now_str}")
+                st.toast("İş sipariş planına eklendi!", icon="🚀")
                 st.rerun()
 
     conn = get_db_connection()
@@ -366,11 +446,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
         df_active['drawing_name'] = df_active['drawing_name'].fillna("")
         df_active['notes'] = df_active['notes'].fillna("")
         df_active['machine_name'] = df_active['machine_name'].fillna("YOK / ATANMADI")
-        df_active['material'] = df_active['material'].fillna("")
-        df_active['dimensions'] = df_active['dimensions'].fillna("")
-        df_active['supplier'] = df_active['supplier'].fillna("")
-        df_active['heat_treatment'] = df_active['heat_treatment'].fillna("")
-        df_active['deadline'] = df_active['deadline'].fillna("")
 
         customers = df_active['customer'].unique()
         
@@ -383,137 +458,122 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     <span class="count-badge">{len(cust_df)} Kalem İş</span>
                 </div>
             """, unsafe_allow_html=True)
-            
-            display_df = cust_df[['id', 'job_name', 'material', 'dimensions', 'supplier', 'quantity', 'heat_treatment', 'status', 'machine_name', 'deadline', 'notes']].copy()
 
-            edited_df = st.data_editor(
-                display_df,
-                key=f"editor_{customer}",
-                use_container_width=True,
-                hide_index=True,
-                column_order=["job_name", "material", "dimensions", "supplier", "quantity", "heat_treatment", "status", "machine_name", "deadline", "notes"],
-                column_config={
-                    "job_name": st.column_config.TextColumn("İŞ", width="medium"),
-                    "material": st.column_config.TextColumn("MALZEME", width="small"),
-                    "dimensions": st.column_config.TextColumn("MALZEME ÖLÇÜLERİ", width="medium"),
-                    "supplier": st.column_config.TextColumn("MALZEME SİPARİŞİ", width="small"),
-                    "quantity": st.column_config.NumberColumn("ADET", width="small"),
-                    "heat_treatment": st.column_config.TextColumn("ISIL İŞLEM- KAPLAMA", width="small"),
-                    "status": st.column_config.SelectboxColumn("İŞLEMLER", options=STATUS_OPTIONS, required=True, width="medium"),
-                    "machine_name": st.column_config.SelectboxColumn("BAĞLI TEZGAH", options=MACHINE_OPTIONS, required=True, width="medium"),
-                    "deadline": st.column_config.TextColumn("TERMİN TARİHİ", width="small"),
-                    "notes": st.column_config.TextColumn("NOTLAR", width="large")
-                }
-            )
+            # TABLO BAŞLIKLARI (SATIR İÇİ DOSYA BÖLÜMÜ EN SAĞDA)
+            h1, h2, h3, h4, h5, h6, h7, h8 = st.columns([2, 1.2, 1, 1.5, 1.5, 1.5, 1.8, 2.2])
+            with h1: st.caption("**İŞ / PARÇA ADI**")
+            with h2: st.caption("**MALZEME / ÖLÇÜ**")
+            with h3: st.caption("**ADET**")
+            with h4: st.caption("**ISIL İŞLEM**")
+            with h5: st.caption("**İŞLEM / DURUM**")
+            with h6: st.caption("**TEZGAH**")
+            with h7: st.caption("**NOT / TERMİN**")
+            with h8: st.caption("**📂 DOSYA İŞLEMLERİ (EN SAĞ)**")
 
-            if st.button(f"💾 {customer} Tablo Değişikliklerini Kaydet", key=f"save_{customer}", type="primary"):
-                conn = get_db_connection()
-                archived_count = 0
+            for _, row in cust_df.iterrows():
+                j_id = int(row['id'])
                 
-                for _, row in edited_df.iterrows():
-                    j_id = int(row['id'])
-                    new_status = str(row['status'])
-                    
-                    if new_status == "HAZIR":
-                        end_now_dt = datetime.now()
-                        end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
-                        
-                        orig_row = cust_df[cust_df['id'] == j_id].iloc[0]
-                        duration_calc_str = "Belirtilmedi"
-                        if orig_row['start_time']:
-                            start_dt = parse_date(orig_row['start_time'])
-                            if start_dt:
-                                diff = end_now_dt - start_dt
-                                days = diff.days
-                                hours, remainder = divmod(diff.seconds, 3600)
-                                minutes, _ = divmod(remainder, 60)
-                                
-                                parts = []
-                                if days > 0: parts.append(f"{days} Gün")
-                                if hours > 0: parts.append(f"{hours} Saat")
-                                parts.append(f"{minutes} Dk")
-                                duration_calc_str = " ".join(parts)
-
-                        conn.execute('''
-                            UPDATE work_orders 
-                            SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=?, notes=?, is_archived=1, end_time=?, duration_str=?
-                            WHERE id=?
-                        ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], row['deadline'], row['notes'], end_now_str, duration_calc_str, j_id))
-                        archived_count += 1
-                    else:
-                        conn.execute('''
-                            UPDATE work_orders
-                            SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
-                            WHERE id=?
-                        ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], new_status, row['machine_name'], row['deadline'], row['notes'], j_id))
+                st.markdown("<div class='job-row-card'>", unsafe_allow_html=True)
+                c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([2, 1.2, 1, 1.5, 1.5, 1.5, 1.8, 2.2])
                 
-                conn.commit()
-                conn.close()
+                with c1:
+                    new_job = st.text_input("İş Adı", value=row['job_name'], key=f"job_{j_id}", label_visibility="collapsed")
+                with c2:
+                    new_mat = st.text_input("Malzeme", value=row['material'], key=f"mat_{j_id}", label_visibility="collapsed", placeholder="Malzeme")
+                    new_dim = st.text_input("Ölçü", value=row['dimensions'], key=f"dim_{j_id}", label_visibility="collapsed", placeholder="Ölçü")
+                with c3:
+                    new_qty = st.number_input("Adet", value=int(row['quantity']), min_value=1, key=f"qty_{j_id}", label_visibility="collapsed")
+                with c4:
+                    new_heat = st.text_input("Isıl İşlem", value=row['heat_treatment'], key=f"heat_{j_id}", label_visibility="collapsed", placeholder="Sertlik/Kaplama")
+                with c5:
+                    idx_st = STATUS_OPTIONS.index(row['status']) if row['status'] in STATUS_OPTIONS else 0
+                    new_st = st.selectbox("Durum", STATUS_OPTIONS, index=idx_st, key=f"st_{j_id}", label_visibility="collapsed")
+                with c6:
+                    idx_m = MACHINE_OPTIONS.index(row['machine_name']) if row['machine_name'] in MACHINE_OPTIONS else 0
+                    new_mac = st.selectbox("Tezgah", MACHINE_OPTIONS, index=idx_m, key=f"mac_{j_id}", label_visibility="collapsed")
+                with c7:
+                    new_ddl = st.text_input("Termin", value=row['deadline'], key=f"ddl_{j_id}", label_visibility="collapsed", placeholder="Termin")
+                    new_note = st.text_input("Not", value=row['notes'], key=f"note_{j_id}", label_visibility="collapsed", placeholder="Notlar")
                 
-                if archived_count > 0:
-                    st.toast(f"🎉 {archived_count} adet parça 'HAZIR' durumuna getirildi ve arşive aktarıldı!", icon="🎉")
-                else:
-                    st.toast(f"{customer} tablosu güncellendi!", icon="✅")
-                st.rerun()
-
-            with st.expander(f"📂 {customer} - Dosya Yükle / İndir & İşlem Yönetimi", expanded=False):
-                for _, r in cust_df.iterrows():
-                    j_id = int(r['id'])
-                    
-                    d_path = str(r['drawing_path']) if pd.notna(r['drawing_path']) and r['drawing_path'] else ""
-                    d_name = str(r['drawing_name']) if pd.notna(r['drawing_name']) and r['drawing_name'] else "teknik_resim"
+                # EN SAĞ BÖLÜM: DOSYA YÜKLE / İNDİR & SİL
+                with c8:
+                    d_path = str(row['drawing_path'])
+                    d_name = str(row['drawing_name'])
                     has_file = bool(d_path and os.path.exists(d_path))
-
-                    c_info, c_badge, c_up, c_down, c_del = st.columns([3, 2.5, 3, 2, 1.5])
                     
-                    with c_info:
-                        st.write(f"**{r['job_name']}**")
-                        st.caption(f"Başlangıç: {r['start_time'] or 'Kayıtlı değil'}")
-
-                    with c_badge:
-                        if has_file:
-                            st.markdown(f"<div class='file-badge-success'>🟢 ✅ DOSYA YÜKLÜ<br><small style='color:#166534;'>{d_name}</small></div>", unsafe_allow_html=True)
-                        else:
-                            st.markdown("<div class='file-badge-none'>⚪ ❌ Dosya Yüklenmedi</div>", unsafe_allow_html=True)
-
-                    with c_up:
-                        up_f = st.file_uploader("Dosya Yükle", type=None, key=f"up_{j_id}", label_visibility="collapsed")
-                        if up_f is not None:
-                            original_filename = str(up_f.name)
+                    f_col1, f_col2, f_col3 = st.columns([1.5, 1, 0.5])
+                    with f_col1:
+                        up_file = st.file_uploader("Dosya", type=None, key=f"up_{j_id}", label_visibility="collapsed")
+                        if up_file is not None:
+                            original_filename = str(up_file.name)
                             save_filename = f"job_{j_id}_{original_filename}"
                             save_path = os.path.join("uploads", save_filename)
                             with open(save_path, "wb") as f:
-                                f.write(up_f.getbuffer())
+                                f.write(up_file.getbuffer())
                             
                             conn = get_db_connection()
                             conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (save_path, original_filename, j_id))
                             conn.commit()
                             conn.close()
-                            st.toast(f"'{original_filename}' başarıyla yüklendi!", icon="📤")
+                            st.toast("Dosya yüklendi!", icon="🟢")
                             st.rerun()
 
-                    with c_down:
+                    with f_col2:
                         if has_file:
                             with open(d_path, "rb") as f_bytes:
-                                file_data = f_bytes.read()
-                            st.download_button(
-                                label="📥 İndir",
-                                data=file_data,
-                                file_name=d_name,
-                                key=f"dl_{j_id}"
-                            )
+                                st.download_button("📥 İndir", f_bytes.read(), file_name=d_name, key=f"dl_{j_id}")
                         else:
-                            st.caption("-")
+                            st.caption("Yok")
 
-                    with c_del:
-                        if st.button("🗑️ Sil", key=f"del_{j_id}"):
+                    with f_col3:
+                        if st.button("🗑️", key=f"del_{j_id}", help="İşi Sil"):
                             conn = get_db_connection()
                             conn.execute("DELETE FROM work_orders WHERE id = ?", (j_id,))
                             conn.commit()
                             conn.close()
-                            st.warning("İş silindi!")
+                            st.toast("İş silindi!", icon="🗑️")
                             st.rerun()
-                    st.divider()
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                # OTOMATİK KAYIT VE "HAZIR" DURUMU KONTROLÜ
+                if (new_job != row['job_name'] or new_mat != row['material'] or new_dim != row['dimensions'] or 
+                    new_qty != row['quantity'] or new_heat != row['heat_treatment'] or new_st != row['status'] or 
+                    new_mac != row['machine_name'] or new_ddl != row['deadline'] or new_note != row['notes']):
+                    
+                    conn = get_db_connection()
+                    if new_st == "HAZIR":
+                        end_now_dt = datetime.now()
+                        end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
+                        duration_calc_str = "Belirtilmedi"
+                        if row['start_time']:
+                            start_dt = parse_date(row['start_time'])
+                            if start_dt:
+                                diff = end_now_dt - start_dt
+                                days = diff.days
+                                hours, remainder = divmod(diff.seconds, 3600)
+                                minutes, _ = divmod(remainder, 60)
+                                duration_calc_str = f"{days} Gün {hours} Saat {minutes} Dk" if days > 0 else f"{hours} Saat {minutes} Dk"
+
+                        conn.execute('''
+                            UPDATE work_orders 
+                            SET job_name=?, material=?, dimensions=?, quantity=?, heat_treatment=?, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=?, notes=?, is_archived=1, end_time=?, duration_str=?
+                            WHERE id=?
+                        ''', (new_job, new_mat, new_dim, new_qty, new_heat, new_ddl, new_note, end_now_str, duration_calc_str, j_id))
+                        conn.commit()
+                        conn.close()
+                        st.toast("🎉 Parça 'HAZIR' durumuna getirildi ve arşive aktarıldı!", icon="🎉")
+                        st.rerun()
+                    else:
+                        conn.execute('''
+                            UPDATE work_orders
+                            SET job_name=?, material=?, dimensions=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
+                            WHERE id=?
+                        ''', (new_job, new_mat, new_dim, new_qty, new_heat, new_st, new_mac, new_ddl, new_note, j_id))
+                        conn.commit()
+                        conn.close()
+                        st.toast("Değişiklikler otomatik kaydedildi", icon="💾")
+                        st.rerun()
 
     else:
         st.info("İş planında henüz aktif iş bulunmuyor. Yukarıdaki formdan yeni iş ekleyebilirsiniz.")
@@ -589,11 +649,11 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 3. ISIL İŞLEM TAKİP MODÜLÜ
+# 3. ISIL İŞLEM TAKİP MODÜLÜ (GÜNCELLENMİŞ FİRMALAR & OTOMATİK KAYIT)
 # ---------------------------------------------------------
 elif menu == "🔥 Isıl İşlem Takip":
     st.markdown("## 🔥 Isıl İşlem Takip Modülü")
-    st.caption("Fason ısıl işleme gönderilen malzemelerin firma, sertlik, kg ve fatura durum takibi.")
+    st.caption("Fason ısıl işleme gönderilen malzemelerin firma, sertlik, kg ve fatura durum takibi. Tablodaki değişiklikler otomatik kaydedilir.")
 
     with st.expander("➕ **Yeni Isıl İşlem Gönderim Kaydı Ekle**", expanded=False):
         with st.form("add_ht_form", clear_on_submit=True):
@@ -628,7 +688,7 @@ elif menu == "🔥 Isıl İşlem Takip":
                 ''', (ht_date.strip(), ht_supplier, ht_customer.upper().strip(), ht_prod.strip(), ht_qty, ht_mat.strip(), ht_hard.strip(), ht_weight, ht_process, ht_status, ht_inv.strip(), now_s))
                 conn.commit()
                 conn.close()
-                st.success("Isıl işlem gönderim kaydı başarıyla eklendi!")
+                st.toast("Isıl işlem kaydı başarıyla eklendi!", icon="🔥")
                 st.rerun()
 
     conn = get_db_connection()
@@ -661,42 +721,39 @@ elif menu == "🔥 Isıl İşlem Takip":
             }
         )
 
-        c_save, c_del_sel = st.columns([3, 2])
-        with c_save:
-            if st.button("💾 Isıl İşlem Tablo Değişikliklerini Kaydet", type="primary"):
-                conn = get_db_connection()
-                for _, row in edited_ht.iterrows():
-                    conn.execute('''
-                        UPDATE heat_treatment
-                        SET sent_date=?, supplier_firm=?, customer=?, product_code_name=?, quantity=?, material=?, hardness=?, weight_kg=?, process_type=?, status=?, invoice_info=?
-                        WHERE id=?
-                    ''', (row['sent_date'], row['supplier_firm'], row['customer'], row['product_code_name'], row['quantity'], row['material'], row['hardness'], row['weight_kg'], row['process_type'], row['status'], row['invoice_info'], row['id']))
-                conn.commit()
-                conn.close()
-                st.toast("Isıl işlem tablosu güncellendi!", icon="✅")
-                st.rerun()
+        # OTOMATİK KAYIT KONTROLÜ
+        if not edited_ht.equals(display_ht):
+            conn = get_db_connection()
+            for _, row in edited_ht.iterrows():
+                conn.execute('''
+                    UPDATE heat_treatment
+                    SET sent_date=?, supplier_firm=?, customer=?, product_code_name=?, quantity=?, material=?, hardness=?, weight_kg=?, process_type=?, status=?, invoice_info=?
+                    WHERE id=?
+                ''', (row['sent_date'], row['supplier_firm'], row['customer'], row['product_code_name'], row['quantity'], row['material'], row['hardness'], row['weight_kg'], row['process_type'], row['status'], row['invoice_info'], row['id']))
+            conn.commit()
+            conn.close()
+            st.toast("Isıl işlem tablosu otomatik kaydedildi", icon="💾")
+            st.rerun()
 
-        with c_del_sel:
-            ht_list = [f"{r['id']} - {r['customer']} ({r['product_code_name']})" for _, r in df_ht.iterrows()]
-            sel_ht_del = st.selectbox("Silinecek Isıl İşlem Kaydını Seçin:", ht_list, key="sel_ht_del")
-            if st.button("🗑️ Seçili Kaydı Sil"):
-                if sel_ht_del:
-                    del_id = int(sel_ht_del.split(" - ")[0])
-                    conn = get_db_connection()
-                    conn.execute("DELETE FROM heat_treatment WHERE id = ?", (del_id,))
-                    conn.commit()
-                    conn.close()
-                    st.toast("Isıl işlem kaydı silindi!", icon="🗑️")
-                    st.rerun()
+        ht_list = [f"{r['id']} - {r['customer']} ({r['product_code_name']})" for _, r in df_ht.iterrows()]
+        sel_ht_del = st.selectbox("Silinecek Isıl İşlem Kaydını Seçin:", ["Seçiniz..."] + ht_list, key="sel_ht_del")
+        if st.button("🗑️ Seçili Isıl İşlem Kaydını Sil") and sel_ht_del != "Seçiniz...":
+            del_id = int(sel_ht_del.split(" - ")[0])
+            conn = get_db_connection()
+            conn.execute("DELETE FROM heat_treatment WHERE id = ?", (del_id,))
+            conn.commit()
+            conn.close()
+            st.toast("Isıl işlem kaydı silindi!", icon="🗑️")
+            st.rerun()
     else:
         st.info("Henüz eklenmiş ısıl işlem kaydı bulunmuyor.")
 
 # ---------------------------------------------------------
-# 4. SU JETİ (WJG) TAKİP MODÜLÜ
+# 4. SU JETİ (WJG) TAKİP MODÜLÜ (OTOMATİK KAYIT)
 # ---------------------------------------------------------
 elif menu == "🌊 Su Jeti (WJG) Takip":
     st.markdown("## 🌊 Su Jeti (WJG) Takip Modülü")
-    st.caption("Su jetinde kesilen parçaların adet, ölçü, birim fiyat ve fatura durum takibi.")
+    st.caption("Su jetinde kesilen parçaların adet, ölçü, birim fiyat ve fatura durum takibi. Tablo otomatik kaydedilir.")
 
     with st.expander("➕ **Yeni Su Jeti (WJG) Kesim Kaydı Ekle**", expanded=False):
         with st.form("add_wjg_form", clear_on_submit=True):
@@ -707,7 +764,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 wjg_part = st.text_input("Parça Tanımı *", placeholder="Ör: GAGALI SLOT BIÇAĞI")
             with col2:
                 wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
-                wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
+                wjg_dims = st.text_input("Ölçu (mm)", placeholder="Ör: 231x48x10")
                 wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
             with col3:
                 wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
@@ -727,7 +784,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 ''', (wjg_date.strip(), wjg_customer.upper().strip(), wjg_part.strip(), wjg_code.strip(), wjg_dims.strip(), wjg_ord_qty, wjg_rec_qty, wjg_price, wjg_inv.strip(), wjg_status, now_s))
                 conn.commit()
                 conn.close()
-                st.success("Su jeti kesim kaydı eklendi!")
+                st.toast("Su jeti kesim kaydı eklendi!", icon="🌊")
                 st.rerun()
 
     conn = get_db_connection()
@@ -759,33 +816,30 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
             }
         )
 
-        c_save, c_del_sel = st.columns([3, 2])
-        with c_save:
-            if st.button("💾 Su Jeti Tablo Değişikliklerini Kaydet", type="primary"):
-                conn = get_db_connection()
-                for _, row in edited_wjg.iterrows():
-                    conn.execute('''
-                        UPDATE wjg_waterjet
-                        SET sent_date=?, customer=?, part_name=?, part_code=?, dimensions=?, order_qty=?, received_qty=?, unit_price=?, invoice_info=?, status=?
-                        WHERE id=?
-                    ''', (row['sent_date'], row['customer'], row['part_name'], row['part_code'], row['dimensions'], row['order_qty'], row['received_qty'], row['unit_price'], row['invoice_info'], row['status'], row['id']))
-                conn.commit()
-                conn.close()
-                st.toast("Su jeti tablosu güncellendi!", icon="✅")
-                st.rerun()
+        # OTOMATİK KAYIT KONTROLÜ
+        if not edited_wjg.equals(display_wjg):
+            conn = get_db_connection()
+            for _, row in edited_wjg.iterrows():
+                conn.execute('''
+                    UPDATE wjg_waterjet
+                    SET sent_date=?, customer=?, part_name=?, part_code=?, dimensions=?, order_qty=?, received_qty=?, unit_price=?, invoice_info=?, status=?
+                    WHERE id=?
+                ''', (row['sent_date'], row['customer'], row['part_name'], row['part_code'], row['dimensions'], row['order_qty'], row['received_qty'], row['unit_price'], row['invoice_info'], row['status'], row['id']))
+            conn.commit()
+            conn.close()
+            st.toast("Su jeti tablosu otomatik kaydedildi", icon="💾")
+            st.rerun()
 
-        with c_del_sel:
-            wjg_list = [f"{r['id']} - {r['customer']} ({r['part_name']})" for _, r in df_wjg.iterrows()]
-            sel_wjg_del = st.selectbox("Silinecek Su Jeti Kaydını Seçin:", wjg_list, key="sel_wjg_del")
-            if st.button("🗑️ Seçili Kaydı Sil ", key="btn_del_wjg"):
-                if sel_wjg_del:
-                    del_id = int(sel_wjg_del.split(" - ")[0])
-                    conn = get_db_connection()
-                    conn.execute("DELETE FROM wjg_waterjet WHERE id = ?", (del_id,))
-                    conn.commit()
-                    conn.close()
-                    st.toast("Su jeti kaydı silindi!", icon="🗑️")
-                    st.rerun()
+        wjg_list = [f"{r['id']} - {r['customer']} ({r['part_name']})" for _, r in df_wjg.iterrows()]
+        sel_wjg_del = st.selectbox("Silinecek Su Jeti Kaydını Seçin:", ["Seçiniz..."] + wjg_list, key="sel_wjg_del")
+        if st.button("🗑️ Seçili Su Jeti Kaydını Sil") and sel_wjg_del != "Seçiniz...":
+            del_id = int(sel_wjg_del.split(" - ")[0])
+            conn = get_db_connection()
+            conn.execute("DELETE FROM wjg_waterjet WHERE id = ?", (del_id,))
+            conn.commit()
+            conn.close()
+            st.toast("Su jeti kaydı silindi!", icon="🗑️")
+            st.rerun()
     else:
         st.info("Henüz eklenmiş su jeti kaydı bulunmuyor.")
 
@@ -852,17 +906,17 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 st.write(f"• **Isıl İşlem:** {row['heat_treatment'] or '-'}")
 
                 if has_arch_file:
-                    st.markdown(f"<div class='file-badge-success'>🟢 ✅ {arch_name}</div>", unsafe_allow_html=True)
+                    st.caption(f"🟢 **Yüklü Dosya:** {arch_name}")
                     with open(arch_path, "rb") as f_bytes:
                         file_data = f_bytes.read()
                     st.download_button(
-                        label="📥 Yüklü Dosyayı İndir",
+                        label="📥 Dosyayı İndir",
                         data=file_data,
                         file_name=arch_name,
                         key=f"arch_dl_{row['id']}"
                     )
                 else:
-                    st.markdown("<div class='file-badge-none'>⚪ Dosya Yüklenmemiş</div>", unsafe_allow_html=True)
+                    st.caption("⚪ Dosya Yüklenmemiş")
 
             with c2:
                 st.markdown("##### ⏱️ İmalat Geçen Süre")
@@ -902,7 +956,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                         ''', (price_val, note_val, in_dik, in_torna, in_tel, in_uni, row['id']))
                         conn.commit()
                         conn.close()
-                        st.toast("Fiyat, tezgah süreleri ve not kaydedildi!", icon="✅")
+                        st.toast("Fiyat ve süreler kaydedildi!", icon="✅")
                         st.rerun()
                 with b2:
                     if st.button("🗑️ Sil", key=f"arch_del_{row['id']}"):
@@ -998,7 +1052,7 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
     m4.metric("Önerilen Birim Satış Fiyatı", f"{round(final_price, 2):,} TL".replace(",", "."), delta=f"%{profit_margin} Kar")
 
 # ---------------------------------------------------------
-# 7. ATÖLYE SOHBETİ (MESAJ DÜZENLEME & SİLME BUTONLARI SAĞDA)
+# 7. ATÖLYE SOHBETİ
 # ---------------------------------------------------------
 elif menu == "💬 Atölye Sohbeti":
     st.markdown("## 💬 Atölye İçi Dijital Mesajlaşma & Not Panosu")
@@ -1042,7 +1096,7 @@ elif menu == "💬 Atölye Sohbeti":
         for _, r in df_chat.iterrows():
             msg_id = int(r['id'])
             
-            st.markdown("<div class='custom-card' style='border-left: 5px solid #dc2626;'>", unsafe_allow_html=True)
+            st.markdown("<div class='custom-card' style='border-left: 5px solid #2563eb;'>", unsafe_allow_html=True)
             
             c_m_main, c_m_act = st.columns([4, 1])
             
@@ -1051,7 +1105,6 @@ elif menu == "💬 Atölye Sohbeti":
                 st.write(r['message'])
 
             with c_m_act:
-                # MESAJLARIN SAĞ TARAFINDAKİ DÜZENLE VE SİL BUTONLARI
                 btn_e, btn_d = st.columns(2)
                 with btn_e:
                     if st.button("✏️", key=f"c_edit_btn_{msg_id}", help="Mesajı Düzenle"):
@@ -1065,7 +1118,6 @@ elif menu == "💬 Atölye Sohbeti":
                         st.toast("Mesaj silindi!", icon="🗑️")
                         st.rerun()
 
-            # DÜZENLEME FORMU AÇILDIĞINDA
             if st.session_state.get(f"editing_msg_{msg_id}", False):
                 with st.form(f"form_edit_msg_{msg_id}"):
                     new_u = st.text_input("Kullanıcı Adı:", value=r['user_name'])
