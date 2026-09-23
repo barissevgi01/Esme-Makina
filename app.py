@@ -232,7 +232,7 @@ def parse_date(date_str):
 # SOL NAVİGASYON MENÜSÜ
 # ---------------------------------------------------------
 st.sidebar.markdown("### ⚙️ EŞME MAKİNA MES")
-st.sidebar.caption("Üretim Takip & İmalat Yönetimi v4.5")
+st.sidebar.caption("Üretim Takip & İmalat Yönetimi v4.6")
 st.sidebar.divider()
 
 menu = st.sidebar.radio(
@@ -247,7 +247,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
     st.markdown("## 📊 İŞ PLANI")
     st.caption("Aktif müşteri siparişleri ve canlı imalat durumları tablosu.")
 
-    # Yeni İş Ekleme Formu (Otomatik Süre Başlar)
+    # Yeni İş Ekleme Formu
     with st.expander("➕ **Yeni İş / Parça Siparişi Ekle**", expanded=False):
         with st.form("add_job_form", clear_on_submit=True):
             col1, col2, col3 = st.columns(3)
@@ -287,15 +287,21 @@ if menu == "📊 İş Planı (Canlı Tablo)":
     conn.close()
 
     if not df_active.empty:
+        # Boş/Null Verileri Güvenli Hale Getir (NaN Hatası Önleme)
+        df_active['drawing_path'] = df_active['drawing_path'].fillna("")
+        df_active['drawing_name'] = df_active['drawing_name'].fillna("")
+        df_active['notes'] = df_active['notes'].fillna("")
+        df_active['machine_name'] = df_active['machine_name'].fillna("YOK / ATANMADI")
+        df_active['material'] = df_active['material'].fillna("")
+        df_active['dimensions'] = df_active['dimensions'].fillna("")
+        df_active['supplier'] = df_active['supplier'].fillna("")
+        df_active['heat_treatment'] = df_active['heat_treatment'].fillna("")
+        df_active['deadline'] = df_active['deadline'].fillna("")
+
         customers = df_active['customer'].unique()
         
         for customer in customers:
             cust_df = df_active[df_active['customer'] == customer].copy()
-            
-            if 'machine_name' not in cust_df.columns:
-                cust_df['machine_name'] = "YOK / ATANMADI"
-            cust_df['machine_name'] = cust_df['machine_name'].fillna("YOK / ATANMADI")
-            cust_df['notes'] = cust_df['notes'].fillna("")
             
             # Modern Şerit Başlık
             st.markdown(f"""
@@ -342,10 +348,15 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 st.toast(f"{customer} tablosu kaydedildi!", icon="✅")
                 st.rerun()
 
-            # PARÇALARA ÖZEL DOSYA YÜKLE / İNDİR & BİTİR / SİL AÇILIR PANELİ
+            # PARÇALARA ÖZEL DOSYA YÜKLE / İNDİR & BİTİR / SİL PANENLİ
             with st.expander(f"📂 {customer} - Dosya Yükle / İndir & İş Emri Bitiş/Silme İşlemleri", expanded=False):
                 for _, r in cust_df.iterrows():
-                    j_id = r['id']
+                    j_id = int(r['id'])
+                    
+                    # Güvenli String Çevrimi (NaN Önleme)
+                    d_path = str(r['drawing_path']) if pd.notna(r['drawing_path']) and r['drawing_path'] else ""
+                    d_name = str(r['drawing_name']) if pd.notna(r['drawing_name']) and r['drawing_name'] else "teknik_resim"
+
                     c_info, c_up, c_down, c_btn1, c_btn2 = st.columns([3, 3, 2, 2, 2])
                     
                     with c_info:
@@ -353,10 +364,9 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                         st.caption(f"Başlangıç: {r['start_time'] or 'Kayıtlı değil'}")
 
                     with c_up:
-                        # HER TÜRLÜ DOSYA YÜKLEME (STEP, SLDPRT, DXF, PDF, ZIP vs.)
                         up_f = st.file_uploader("Dosya Yükle", type=None, key=f"up_{j_id}", label_visibility="collapsed")
                         if up_f is not None:
-                            original_filename = up_f.name
+                            original_filename = str(up_f.name)
                             save_filename = f"job_{j_id}_{original_filename}"
                             save_path = os.path.join("uploads", save_filename)
                             with open(save_path, "wb") as f:
@@ -370,14 +380,13 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                             st.rerun()
 
                     with c_down:
-                        # DOSYA İNDİRME BUTTONU
-                        if r['drawing_path'] and os.path.exists(r['drawing_path']):
-                            with open(r['drawing_path'], "rb") as f_bytes:
+                        if d_path and os.path.exists(d_path):
+                            with open(d_path, "rb") as f_bytes:
                                 file_data = f_bytes.read()
                             st.download_button(
-                                label=f"📥 İndir",
+                                label="📥 İndir",
                                 data=file_data,
-                                file_name=r['drawing_name'] or "teknik_resim",
+                                file_name=d_name,
                                 key=f"dl_{j_id}"
                             )
                         else:
@@ -511,6 +520,10 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
     conn.close()
 
     if not df_arch.empty:
+        df_arch['drawing_path'] = df_arch['drawing_path'].fillna("")
+        df_arch['drawing_name'] = df_arch['drawing_name'].fillna("")
+        df_arch['notes'] = df_arch['notes'].fillna("")
+
         customers = df_arch['customer'].unique()
         selected_cust = st.selectbox("📁 Firma Filtrele:", customers)
         
@@ -520,6 +533,9 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         for _, row in cust_df.iterrows():
             st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
             
+            arch_path = str(row['drawing_path']) if pd.notna(row['drawing_path']) and row['drawing_path'] else ""
+            arch_name = str(row['drawing_name']) if pd.notna(row['drawing_name']) and row['drawing_name'] else "teknik_resim"
+
             c1, c2, c3 = st.columns([3, 3, 2])
             
             with c1:
@@ -528,13 +544,13 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 st.write(f"• **Adet:** {row['quantity']} | **Tedarikçi:** {row['supplier'] or '-'}")
                 st.write(f"• **Isıl İşlem:** {row['heat_treatment'] or '-'}")
 
-                if row['drawing_path'] and os.path.exists(row['drawing_path']):
-                    with open(row['drawing_path'], "rb") as f_bytes:
+                if arch_path and os.path.exists(arch_path):
+                    with open(arch_path, "rb") as f_bytes:
                         file_data = f_bytes.read()
                     st.download_button(
-                        label=f"📥 Yüklü Dosyayı İndir ({row['drawing_name'] or 'Dosya'})",
+                        label=f"📥 Yüklü Dosyayı İndir ({arch_name})",
                         data=file_data,
-                        file_name=row['drawing_name'] or "teknik_resim",
+                        file_name=arch_name,
                         key=f"arch_dl_{row['id']}"
                     )
 
@@ -546,7 +562,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
 
             with c3:
                 st.markdown("##### 💵 Fiyat & Not Düzenle")
-                current_price = float(row['price']) if row['price'] is not None else 0.0
+                current_price = float(row['price']) if pd.notna(row['price']) else 0.0
                 price_val = st.number_input("İmalat Fiyatı (TL):", min_value=0.0, value=current_price, step=100.0, key=f"p_{row['id']}")
                 note_val = st.text_area("Arşiv Notu:", value=row['notes'] or "", key=f"n_{row['id']}", height=80)
                 
