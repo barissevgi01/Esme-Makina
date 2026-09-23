@@ -409,9 +409,9 @@ if menu == "📊 İş Planı (Canlı Tablo)":
             with col1:
                 cust = st.text_input("Firma / Müşteri Adı *", placeholder="Ör: PHILSA A.Ş.")
                 job = st.text_input("İş / Parça Adı *", placeholder="Ör: OKP4746.M PLATE")
-                mat = st.text_input("Malzeme Türü", placeholder="Ör: Ç.2379, 7075 Alüminyum")
+                mat = st.text_input("Malzeme Türü", placeholder="Ör: Ç.2379, 7075 Alüminyum", max_chars=15)
             with col2:
-                dims = st.text_input("Malzeme Ölçüleri", placeholder="Ör: 30x45x85 mm")
+                dims = st.text_input("Malzeme Ölçüleri", placeholder="Ör: 30x45x85 mm", max_chars=15)
                 supp = st.text_input("Malzeme Siparişi / Tedarikçi", placeholder="Ör: ATLAS METAL")
                 qty = st.number_input("Adet", min_value=1, value=10)
             with col3:
@@ -458,72 +458,80 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 </div>
             """, unsafe_allow_html=True)
 
-            h1, h2, h3, h4, h5, h6, h7, h8 = st.columns([2, 1.2, 1, 1.5, 1.5, 1.5, 1.8, 2.2])
+            # TÜM SÜTUNLAR TEK SATIRDA YAN YANA
+            h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 = st.columns([1.6, 0.9, 0.9, 0.6, 1.0, 1.2, 1.1, 0.9, 1.1, 1.0])
             with h1: st.caption("**İŞ / PARÇA ADI**")
-            with h2: st.caption("**MALZEME / ÖLÇÜ**")
-            with h3: st.caption("**ADET**")
-            with h4: st.caption("**ISIL İŞLEM**")
-            with h5: st.caption("**İŞLEM / DURUM**")
-            with h6: st.caption("**TEZGAH**")
-            with h7: st.caption("**NOT / TERMİN**")
-            with h8: st.caption("**📂 DOSYA İŞLEMLERİ (EN SAĞ)**")
+            with h2: st.caption("**MALZEME**")
+            with h3: st.caption("**ÖLÇÜ**")
+            with h4: st.caption("**ADET**")
+            with h5: st.caption("**ISIL İŞLEM**")
+            with h6: st.caption("**DURUM**")
+            with h7: st.caption("**TEZGAH**")
+            with h8: st.caption("**TERMİN**")
+            with h9: st.caption("**NOT**")
+            with h10: st.caption("**İŞLEM**")
 
             for _, row in cust_df.iterrows():
                 j_id = int(row['id'])
                 
                 st.markdown("<div class='job-row-card'>", unsafe_allow_html=True)
-                c1, c2, c3, c4, c5, c6, c7, c8 = st.columns([2, 1.2, 1, 1.5, 1.5, 1.5, 1.8, 2.2])
+                c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = st.columns([1.6, 0.9, 0.9, 0.6, 1.0, 1.2, 1.1, 0.9, 1.1, 1.0])
                 
                 with c1:
                     new_job = st.text_input("İş Adı", value=row['job_name'], key=f"job_{j_id}", label_visibility="collapsed")
                 with c2:
-                    new_mat = st.text_input("Malzeme", value=row['material'], key=f"mat_{j_id}", label_visibility="collapsed", placeholder="Malzeme")
-                    new_dim = st.text_input("Ölçü", value=row['dimensions'], key=f"dim_{j_id}", label_visibility="collapsed", placeholder="Ölçü")
+                    new_mat = st.text_input("Malzeme", value=row['material'], max_chars=15, key=f"mat_{j_id}", label_visibility="collapsed", placeholder="Malzeme")
                 with c3:
-                    new_qty = st.number_input("Adet", value=int(row['quantity']), min_value=1, key=f"qty_{j_id}", label_visibility="collapsed")
+                    new_dim = st.text_input("Ölçü", value=row['dimensions'], max_chars=15, key=f"dim_{j_id}", label_visibility="collapsed", placeholder="Ölçü")
                 with c4:
-                    new_heat = st.text_input("Isıl İşlem", value=row['heat_treatment'], key=f"heat_{j_id}", label_visibility="collapsed", placeholder="Sertlik/Kaplama")
+                    new_qty = st.number_input("Adet", value=int(row['quantity']), min_value=1, key=f"qty_{j_id}", label_visibility="collapsed")
                 with c5:
+                    new_heat = st.text_input("Isıl İşlem", value=row['heat_treatment'], key=f"heat_{j_id}", label_visibility="collapsed", placeholder="Sertlik/Kaplama")
+                with c6:
                     idx_st = STATUS_OPTIONS.index(row['status']) if row['status'] in STATUS_OPTIONS else 0
                     new_st = st.selectbox("Durum", STATUS_OPTIONS, index=idx_st, key=f"st_{j_id}", label_visibility="collapsed")
-                with c6:
+                with c7:
                     idx_m = MACHINE_OPTIONS.index(row['machine_name']) if row['machine_name'] in MACHINE_OPTIONS else 0
                     new_mac = st.selectbox("Tezgah", MACHINE_OPTIONS, index=idx_m, key=f"mac_{j_id}", label_visibility="collapsed")
-                with c7:
-                    new_ddl = st.text_input("Termin", value=row['deadline'], key=f"ddl_{j_id}", label_visibility="collapsed", placeholder="Termin")
-                    new_note = st.text_input("Not", value=row['notes'], key=f"note_{j_id}", label_visibility="collapsed", placeholder="Notlar")
-                
                 with c8:
+                    new_ddl = st.text_input("Termin", value=row['deadline'], key=f"ddl_{j_id}", label_visibility="collapsed", placeholder="STOK / Tarih")
+                with c9:
+                    new_note = st.text_input("Not", value=row['notes'], key=f"note_{j_id}", label_visibility="collapsed", placeholder="Not")
+                
+                with c10:
                     d_path = str(row['drawing_path'])
                     d_name = str(row['drawing_name'])
                     has_file = bool(d_path and os.path.exists(d_path))
                     
-                    f_col1, f_col2, f_col3 = st.columns([1.5, 1, 0.5])
-                    with f_col1:
-                        up_file = st.file_uploader("Dosya", type=None, key=f"up_{j_id}", label_visibility="collapsed")
-                        if up_file is not None:
-                            original_filename = str(up_file.name)
-                            save_filename = f"job_{j_id}_{original_filename}"
-                            save_path = os.path.join("uploads", save_filename)
-                            with open(save_path, "wb") as f:
-                                f.write(up_file.getbuffer())
-                            
-                            conn = get_db_connection()
-                            conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (save_path, original_filename, j_id))
-                            conn.commit()
-                            conn.close()
-                            st.toast("Dosya yüklendi!", icon="🟢")
-                            st.rerun()
+                    # Sadece İkonlar ile Yer Tasarrufu
+                    ic1, ic2, ic3 = st.columns(3)
+                    
+                    with ic1:
+                        with st.popover("📤", help="Teknik Resim / Dosya Yükle"):
+                            up_file = st.file_uploader("Dosya Seçin", type=None, key=f"up_{j_id}", label_visibility="collapsed")
+                            if up_file is not None:
+                                original_filename = str(up_file.name)
+                                save_filename = f"job_{j_id}_{original_filename}"
+                                save_path = os.path.join("uploads", save_filename)
+                                with open(save_path, "wb") as f:
+                                    f.write(up_file.getbuffer())
+                                
+                                conn = get_db_connection()
+                                conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (save_path, original_filename, j_id))
+                                conn.commit()
+                                conn.close()
+                                st.toast("Dosya yüklendi!", icon="🟢")
+                                st.rerun()
 
-                    with f_col2:
+                    with ic2:
                         if has_file:
                             with open(d_path, "rb") as f_bytes:
-                                st.download_button("📥 İndir", f_bytes.read(), file_name=d_name, key=f"dl_{j_id}")
+                                st.download_button("📥", f_bytes.read(), file_name=d_name, key=f"dl_{j_id}", help=f"Dosyayı İndir ({d_name})")
                         else:
-                            st.caption("Yok")
+                            st.button("🚫", disabled=True, key=f"nodl_{j_id}", help="Yüklü dosya yok")
 
-                    with f_col3:
-                        if st.button("🗑️", key=f"del_{j_id}", help="İşi Sil"):
+                    with ic3:
+                        if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
                             conn = get_db_connection()
                             conn.execute("DELETE FROM work_orders WHERE id = ?", (j_id,))
                             conn.commit()
@@ -909,83 +917,91 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
 # ---------------------------------------------------------
-# 6. AKILLI MALİYET HESABI
+# 6. AKILLI MALİYET HESABI (TEK SAYFADA BİRLEŞTİRİLMİŞ)
 # ---------------------------------------------------------
 elif menu == "💰 Akıllı Maliyet Hesabı":
     st.markdown("## 💰 Akıllı Parça & İşleme Maliyet Hesaplayıcı")
     st.caption("Hammadde ağırlığı, tezgah saat ücretleri ve fason giderleri ile hızlı teklif maliyeti oluşturun.")
 
-    t1, t2 = st.tabs(["⚖️ Hammadde Ağırlık Hesabı", "⚙️ İşleme & Teklif Maliyeti"])
+    col_mat, col_mach = st.columns([1, 1], gap="large")
 
-    with t1:
-        c1, c2 = st.columns(2)
-        with c1:
-            shape = st.selectbox("Geometri / Kesit Türü", ["Dolu Mil (Silindir)", "Lama / Blok (L x W x H)", "Boru (Dış D - İç D - Boy)"])
-            mat_type = st.selectbox("Malzeme Türü", list(MATERIAL_DENSITIES.keys()))
-            density = MATERIAL_DENSITIES[mat_type]
-            st.info(f"Seçilen Malzeme Özkütlesi: **{density} g/cm³**")
+    with col_mat:
+        st.markdown("<div class='custom-card'><h3>⚖️ 1. Hammadde & Ağırlık Hesabı</h3>", unsafe_allow_html=True)
+        
+        shape = st.selectbox("Geometri / Kesit Türü", ["Dolu Mil (Silindir)", "Lama / Blok (L x W x H)", "Boru (Dış D - İç D - Boy)"])
+        mat_type = st.selectbox("Malzeme Türü", list(MATERIAL_DENSITIES.keys()))
+        density = MATERIAL_DENSITIES[mat_type]
+        st.info(f"Seçilen Malzeme Özkütlesi: **{density} g/cm³**")
 
         weight_kg = 0.0
-        with c2:
-            if shape == "Dolu Mil (Silindir)":
-                dia = st.number_input("Çap (mm)", min_value=1.0, value=50.0)
-                length = st.number_input("Boy (mm)", min_value=1.0, value=100.0)
-                vol_cm3 = (math.pi * ((dia / 2) ** 2) * length) / 1000
-                weight_kg = (vol_cm3 * density) / 1000
 
-            elif shape == "Lama / Blok (L x W x H)":
-                l = st.number_input("Uzunluk - L (mm)", min_value=1.0, value=100.0)
-                w = st.number_input("Genişlik - W (mm)", min_value=1.0, value=50.0)
-                h = st.number_input("Yükseklik/Kalınlık - H (mm)", min_value=1.0, value=20.0)
-                vol_cm3 = (l * w * h) / 1000
-                weight_kg = (vol_cm3 * density) / 1000
+        if shape == "Dolu Mil (Silindir)":
+            dia = st.number_input("Çap (mm)", min_value=1.0, value=50.0, key="cost_dia")
+            length = st.number_input("Boy (mm)", min_value=1.0, value=100.0, key="cost_len")
+            vol_cm3 = (math.pi * ((dia / 2) ** 2) * length) / 1000
+            weight_kg = (vol_cm3 * density) / 1000
 
-            elif shape == "Boru (Dış D - İç D - Boy)":
-                out_d = st.number_input("Dış Çap (mm)", min_value=1.0, value=60.0)
-                in_d = st.number_input("İç Çap (mm)", min_value=0.0, value=40.0)
-                l = st.number_input("Boy (mm)", min_value=1.0, value=100.0)
-                vol_cm3 = (math.pi * (((out_d / 2) ** 2) - ((in_d / 2) ** 2)) * l) / 1000
-                weight_kg = (vol_cm3 * density) / 1000 if out_d > in_d else 0.0
+        elif shape == "Lama / Blok (L x W x H)":
+            l = st.number_input("Uzunluk - L (mm)", min_value=1.0, value=100.0, key="cost_l")
+            w = st.number_input("Genişlik - W (mm)", min_value=1.0, value=50.0, key="cost_w")
+            h = st.number_input("Yükseklik/Kalınlık - H (mm)", min_value=1.0, value=20.0, key="cost_h")
+            vol_cm3 = (l * w * h) / 1000
+            weight_kg = (vol_cm3 * density) / 1000
 
-            unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺ / Euro)", min_value=0.0, value=120.0)
-            total_mat_cost = weight_kg * unit_price_kg
+        elif shape == "Boru (Dış D - İç D - Boy)":
+            out_d = st.number_input("Dış Çap (mm)", min_value=1.0, value=60.0, key="cost_out_d")
+            in_d = st.number_input("İç Çap (mm)", min_value=0.0, value=40.0, key="cost_in_d")
+            l = st.number_input("Boy (mm)", min_value=1.0, value=100.0, key="cost_pipe_l")
+            vol_cm3 = (math.pi * (((out_d / 2) ** 2) - ((in_d / 2) ** 2)) * l) / 1000
+            weight_kg = (vol_cm3 * density) / 1000 if out_d > in_d else 0.0
 
-            st.metric("Hesaplanan Parça Ağırlığı", f"{weight_kg:.3f} KG")
-            st.metric("Tahmini Hammadde Maliyeti", f"{total_mat_cost:.2f} ₺")
+        unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺ / Euro)", min_value=0.0, value=120.0, key="cost_unit_price")
+        total_mat_cost = weight_kg * unit_price_kg
 
-    with t2:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("⏱️ İşleme Süreleri (Dakika)")
-            t_dik = st.number_input("CNC Dik İşleme (Dakika)", min_value=0.0, value=30.0)
-            t_torna = st.number_input("CNC Torna (Dakika)", min_value=0.0, value=15.0)
-            t_tel = st.number_input("Tel Erezyon (Dakika)", min_value=0.0, value=45.0)
-            t_uni = st.number_input("Üniversal / Taşlama (Dakika)", min_value=0.0, value=10.0)
+        st.divider()
+        st.metric("Hesaplanan Parça Ağırlığı", f"{weight_kg:.3f} KG")
+        st.metric("Tahmini Hammadde Maliyeti", f"{total_mat_cost:.2f} ₺")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        with col2:
-            st.subheader("💳 Tezgah Saat Ücretleri (₺ / Saat)")
-            r_dik = st.number_input("CNC Dik Saat Ücreti", min_value=0.0, value=1200.0)
-            r_torna = st.number_input("CNC Torna Saat Ücreti", min_value=0.0, value=1000.0)
-            r_tel = st.number_input("Tel Erezyon Saat Ücreti", min_value=0.0, value=800.0)
-            r_uni = st.number_input("Üniversal Saat Ücreti", min_value=0.0, value=600.0)
+    with col_mach:
+        st.markdown("<div class='custom-card'><h3>⚙️ 2. İşleme & Teklif Maliyeti</h3>", unsafe_allow_html=True)
+        
+        c_time, c_rate = st.columns(2)
+        with c_time:
+            st.markdown("**⏱️ İşleme Süreleri (Dk)**")
+            t_dik = st.number_input("CNC Dik İsl. (Dk)", min_value=0.0, value=30.0, key="cost_t_dik")
+            t_torna = st.number_input("CNC Torna (Dk)", min_value=0.0, value=15.0, key="cost_t_torna")
+            t_tel = st.number_input("Tel Erezyon (Dk)", min_value=0.0, value=45.0, key="cost_t_tel")
+            t_uni = st.number_input("Üniversal (Dk)", min_value=0.0, value=10.0, key="cost_t_uni")
 
+        with c_rate:
+            st.markdown("**💳 Saat Ücretleri (₺/Saat)**")
+            r_dik = st.number_input("Dik İşleme Ücreti", min_value=0.0, value=1200.0, key="cost_r_dik")
+            r_torna = st.number_input("Torna Saat Ücreti", min_value=0.0, value=1000.0, key="cost_r_torna")
+            r_tel = st.number_input("Tel Erezyon Ücreti", min_value=0.0, value=800.0, key="cost_r_tel")
+            r_uni = st.number_input("Üniversal Ücreti", min_value=0.0, value=600.0, key="cost_r_uni")
+
+        st.markdown("---")
         c_fason1, c_fason2 = st.columns(2)
         with c_fason1:
-            fason_ht = st.number_input("Isıl İşlem Fason Maliyeti (₺)", min_value=0.0, value=150.0)
-            fason_coat = st.number_input("Kaplama / Su Jeti Fason (₺)", min_value=0.0, value=0.0)
+            fason_ht = st.number_input("Isıl İşlem Fason Maliyeti (₺)", min_value=0.0, value=150.0, key="cost_fason_ht")
+            fason_coat = st.number_input("Kaplama / Su Jeti Fason (₺)", min_value=0.0, value=0.0, key="cost_fason_coat")
         with c_fason2:
-            mat_cost_input = st.number_input("Hammadde Parça Maliyeti (₺)", min_value=0.0, value=total_mat_cost)
-            profit_margin = st.slider("Kâr Marjı (%)", min_value=0, max_value=100, value=30)
+            mat_cost_input = st.number_input("Hammadde Maliyeti (₺)", min_value=0.0, value=float(total_mat_cost), key="cost_mat_input", help="Sol tarafta hesaplanan hammadde maliyeti otomatik gelir.")
+            profit_margin = st.slider("Kâr Marjı (%)", min_value=0, max_value=100, value=30, key="cost_profit")
 
         cost_machining = ((t_dik / 60) * r_dik) + ((t_torna / 60) * r_torna) + ((t_tel / 60) * r_tel) + ((t_uni / 60) * r_uni)
         total_base_cost = cost_machining + mat_cost_input + fason_ht + fason_coat
         final_price = total_base_cost * (1 + (profit_margin / 100))
 
-        st.divider()
-        m1, m2, m3 = st.columns(3)
-        m1.metric("İşleme İşçilik Maliyeti", f"{cost_machining:.2f} ₺")
-        m2.metric("Toplam İmalat Maliyeti", f"{total_base_cost:.2f} ₺")
-        m3.metric("Önerilen Teklif Fiyatı", f"{final_price:.2f} ₺", delta=f"%{profit_margin} Kâr")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("### 📊 HESAPLANAN TEKLİF VE MALİYET ÖZETİ")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("İşleme İşçilik Maliyeti", f"{cost_machining:.2f} ₺")
+    m2.metric("Toplam İmalat Maliyeti", f"{total_base_cost:.2f} ₺")
+    m3.metric("Önerilen Teklif Fiyatı", f"{final_price:.2f} ₺", delta=f"%{profit_margin} Kâr Marjı")
 
 # ---------------------------------------------------------
 # 7. ATÖLYE SOHBETİ
