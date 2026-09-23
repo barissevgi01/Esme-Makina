@@ -65,6 +65,30 @@ st.markdown("""
         font-size: 0.82rem;
         font-weight: 600;
     }
+
+    .file-badge-success {
+        background-color: #dcfce7;
+        color: #15803d;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        border: 1px solid #bbf7d0;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+
+    .file-badge-none {
+        background-color: #f1f5f9;
+        color: #64748b;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
     
     [data-testid="stSidebar"] {
         background-color: #0f172a;
@@ -121,6 +145,10 @@ def init_db():
             end_time TEXT,
             duration_str TEXT,
             price REAL,
+            dik_time REAL DEFAULT 0,
+            torna_time REAL DEFAULT 0,
+            tel_time REAL DEFAULT 0,
+            uni_time REAL DEFAULT 0,
             drawing_path TEXT,
             drawing_name TEXT,
             created_at TEXT,
@@ -137,7 +165,7 @@ def init_db():
         )
     ''')
     
-    # Eksik Sütun Otomatik Ekleme
+    # Eksik Sütun Otomatik Ekleme (Migrasyon)
     cursor.execute("PRAGMA table_info(work_orders)")
     cols = [row[1] for row in cursor.fetchall()]
     
@@ -148,6 +176,10 @@ def init_db():
         ('end_time', 'TEXT'),
         ('duration_str', 'TEXT'),
         ('price', 'REAL'),
+        ('dik_time', 'REAL DEFAULT 0'),
+        ('torna_time', 'REAL DEFAULT 0'),
+        ('tel_time', 'REAL DEFAULT 0'),
+        ('uni_time', 'REAL DEFAULT 0'),
         ('drawing_path', 'TEXT'),
         ('drawing_name', 'TEXT'),
         ('is_archived', 'INTEGER DEFAULT 0')
@@ -162,7 +194,7 @@ def init_db():
 
 init_db()
 
-# İŞLEMLER LISTESI
+# İŞLEMLER LISTESI (HAZIR SEÇENEĞİ DAHİL)
 STATUS_OPTIONS = [
     "MALZEME SİPARİŞİ VERİLDİ",
     "DİK İŞLEME SIRADA",
@@ -181,7 +213,8 @@ STATUS_OPTIONS = [
     "ISIL İŞLEM ALPHA",
     "ELOKSAL KAPLAMA",
     "WJG SU JETİ",
-    "ASM LAZER"
+    "ASM LAZER",
+    "HAZIR"
 ]
 
 # TEZGAH SEÇENEKLERİ
@@ -232,7 +265,7 @@ def parse_date(date_str):
 # SOL NAVİGASYON MENÜSÜ
 # ---------------------------------------------------------
 st.sidebar.markdown("### ⚙️ EŞME MAKİNA MES")
-st.sidebar.caption("Üretim Takip & İmalat Yönetimi v4.6")
+st.sidebar.caption("Üretim Takip & İmalat Yönetimi v5.0")
 st.sidebar.divider()
 
 menu = st.sidebar.radio(
@@ -241,7 +274,7 @@ menu = st.sidebar.radio(
 )
 
 # ---------------------------------------------------------
-# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET (GİRDİĞİNDE SÜRE BAŞLAR)
+# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET (HAZIR İLE ARŞİVLEME)
 # ---------------------------------------------------------
 if menu == "📊 İş Planı (Canlı Tablo)":
     st.markdown("## 📊 İŞ PLANI")
@@ -287,7 +320,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
     conn.close()
 
     if not df_active.empty:
-        # Boş/Null Verileri Güvenli Hale Getir (NaN Hatası Önleme)
         df_active['drawing_path'] = df_active['drawing_path'].fillna("")
         df_active['drawing_name'] = df_active['drawing_name'].fillna("")
         df_active['notes'] = df_active['notes'].fillna("")
@@ -334,34 +366,79 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 }
             )
 
-            # TABLO DEĞİŞİKLİKLERİNİ KAYDET BUTONU
+            # TABLO DEĞİŞİKLİKLERİNİ KAYDET (HAZIR OLANLARI OTOMATİK ARŞİVLE)
             if st.button(f"💾 {customer} Tablo Değişikliklerini Kaydet", key=f"save_{customer}", type="primary"):
                 conn = get_db_connection()
+                archived_count = 0
+                
                 for _, row in edited_df.iterrows():
-                    conn.execute('''
-                        UPDATE work_orders
-                        SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
-                        WHERE id=?
-                    ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], row['status'], row['machine_name'], row['deadline'], row['notes'], row['id']))
+                    j_id = int(row['id'])
+                    new_status = str(row['status'])
+                    
+                    if new_status == "HAZIR":
+                        # HAZIR SEÇİLDİYSE İŞİ BİTİR VE ARŞİVLE
+                        end_now_dt = datetime.now()
+                        end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
+                        
+                        orig_row = cust_df[cust_df['id'] == j_id].iloc[0]
+                        duration_calc_str = "Belirtilmedi"
+                        if orig_row['start_time']:
+                            start_dt = parse_date(orig_row['start_time'])
+                            if start_dt:
+                                diff = end_now_dt - start_dt
+                                days = diff.days
+                                hours, remainder = divmod(diff.seconds, 3600)
+                                minutes, _ = divmod(remainder, 60)
+                                
+                                parts = []
+                                if days > 0: parts.append(f"{days} Gün")
+                                if hours > 0: parts.append(f"{hours} Saat")
+                                parts.append(f"{minutes} Dk")
+                                duration_calc_str = " ".join(parts)
+
+                        conn.execute('''
+                            UPDATE work_orders 
+                            SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=?, notes=?, is_archived=1, end_time=?, duration_str=?
+                            WHERE id=?
+                        ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], row['deadline'], row['notes'], end_now_str, duration_calc_str, j_id))
+                        archived_count += 1
+                    else:
+                        conn.execute('''
+                            UPDATE work_orders
+                            SET job_name=?, material=?, dimensions=?, supplier=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
+                            WHERE id=?
+                        ''', (row['job_name'], row['material'], row['dimensions'], row['supplier'], row['quantity'], row['heat_treatment'], new_status, row['machine_name'], row['deadline'], row['notes'], j_id))
+                
                 conn.commit()
                 conn.close()
-                st.toast(f"{customer} tablosu kaydedildi!", icon="✅")
+                
+                if archived_count > 0:
+                    st.toast(f"🎉 {archived_count} adet parça 'HAZIR' durumuna getirildi ve arşive aktarıldı!", icon="🎉")
+                else:
+                    st.toast(f"{customer} tablosu güncellendi!", icon="✅")
                 st.rerun()
 
-            # PARÇALARA ÖZEL DOSYA YÜKLE / İNDİR & BİTİR / SİL PANENLİ
-            with st.expander(f"📂 {customer} - Dosya Yükle / İndir & İş Emri Bitiş/Silme İşlemleri", expanded=False):
+            # PARÇALARA ÖZEL DOSYA YÜKLEME & İNDİRME PANELİ
+            with st.expander(f"📂 {customer} - Dosya Yükle / İndir & İşlem Yönetimi", expanded=False):
                 for _, r in cust_df.iterrows():
                     j_id = int(r['id'])
                     
-                    # Güvenli String Çevrimi (NaN Önleme)
                     d_path = str(r['drawing_path']) if pd.notna(r['drawing_path']) and r['drawing_path'] else ""
                     d_name = str(r['drawing_name']) if pd.notna(r['drawing_name']) and r['drawing_name'] else "teknik_resim"
+                    has_file = bool(d_path and os.path.exists(d_path))
 
-                    c_info, c_up, c_down, c_btn1, c_btn2 = st.columns([3, 3, 2, 2, 2])
+                    c_info, c_badge, c_up, c_down, c_del = st.columns([3, 2.5, 3, 2, 1.5])
                     
                     with c_info:
                         st.write(f"**{r['job_name']}**")
                         st.caption(f"Başlangıç: {r['start_time'] or 'Kayıtlı değil'}")
+
+                    with c_badge:
+                        # DOSYA YÜKLÜ / YÜKLENMEDİ BELİRGİN İBARESİ
+                        if has_file:
+                            st.markdown(f"<div class='file-badge-success'>🟢 ✅ DOSYA YÜKLÜ<br><small style='color:#166534;'>{d_name}</small></div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown("<div class='file-badge-none'>⚪ ❌ Dosya Yüklenmedi</div>", unsafe_allow_html=True)
 
                     with c_up:
                         up_f = st.file_uploader("Dosya Yükle", type=None, key=f"up_{j_id}", label_visibility="collapsed")
@@ -376,11 +453,11 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                             conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (save_path, original_filename, j_id))
                             conn.commit()
                             conn.close()
-                            st.toast(f"'{original_filename}' yüklendi!", icon="📤")
+                            st.toast(f"'{original_filename}' başarıyla yüklendi!", icon="📤")
                             st.rerun()
 
                     with c_down:
-                        if d_path and os.path.exists(d_path):
+                        if has_file:
                             with open(d_path, "rb") as f_bytes:
                                 file_data = f_bytes.read()
                             st.download_button(
@@ -390,42 +467,9 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                                 key=f"dl_{j_id}"
                             )
                         else:
-                            st.caption("Dosya Yok")
+                            st.caption("-")
 
-                    with c_btn1:
-                        if st.button("🏁 İşi Bitir", key=f"fin_{j_id}"):
-                            end_now_dt = datetime.now()
-                            end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
-                            
-                            duration_calc_str = "Belirtilmedi"
-                            if r['start_time']:
-                                start_dt = parse_date(r['start_time'])
-                                if start_dt:
-                                    diff = end_now_dt - start_dt
-                                    days = diff.days
-                                    hours, remainder = divmod(diff.seconds, 3600)
-                                    minutes, _ = divmod(remainder, 60)
-                                    
-                                    parts = []
-                                    if days > 0:
-                                        parts.append(f"{days} Gün")
-                                    if hours > 0:
-                                        parts.append(f"{hours} Saat")
-                                    parts.append(f"{minutes} Dk")
-                                    duration_calc_str = " ".join(parts)
-
-                            conn = get_db_connection()
-                            conn.execute('''
-                                UPDATE work_orders 
-                                SET is_archived = 1, status = 'TAMAMLANDI', machine_name = 'YOK / ATANMADI', end_time = ?, duration_str = ? 
-                                WHERE id = ?
-                            ''', (end_now_str, duration_calc_str, j_id))
-                            conn.commit()
-                            conn.close()
-                            st.toast(f"İş bitti! Süre: {duration_calc_str}", icon="🎉")
-                            st.rerun()
-
-                    with c_btn2:
+                    with c_del:
                         if st.button("🗑️ Sil", key=f"del_{j_id}"):
                             conn = get_db_connection()
                             conn.execute("DELETE FROM work_orders WHERE id = ?", (j_id,))
@@ -509,11 +553,11 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 3. İMALAT HAFIZASI (ARŞİV & DOSYA İNDİRME)
+# 3. İMALAT HAFIZASI (ARŞİVDE ARAMA ÇUBUĞU & TEZGAH SÜRELERİ)
 # ---------------------------------------------------------
 elif menu == "📚 İmalat Hafızası (Arşiv)":
     st.markdown("## 📚 İmalat Hafızası & Biten İşler Arşivi")
-    st.caption("Tamamlanıp arşive kaldırılan geçmiş işlerinizin detaylı dökümü, dosyaları, imalat süreleri ve fiyat kayıtları.")
+    st.caption("Tamamlanıp arşive kaldırılan geçmiş işlerinizin detaylı dökümü, dosyaları, imalat süreleri ve tezgah bazlı süre kayıtları.")
     
     conn = get_db_connection()
     df_arch = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 1 ORDER BY id DESC", conn)
@@ -523,44 +567,90 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         df_arch['drawing_path'] = df_arch['drawing_path'].fillna("")
         df_arch['drawing_name'] = df_arch['drawing_name'].fillna("")
         df_arch['notes'] = df_arch['notes'].fillna("")
+        df_arch['customer'] = df_arch['customer'].fillna("")
+        df_arch['job_name'] = df_arch['job_name'].fillna("")
+        df_arch['material'] = df_arch['material'].fillna("")
+        df_arch['supplier'] = df_arch['supplier'].fillna("")
+        df_arch['dimensions'] = df_arch['dimensions'].fillna("")
 
-        customers = df_arch['customer'].unique()
-        selected_cust = st.selectbox("📁 Firma Filtrele:", customers)
-        
-        cust_df = df_arch[df_arch['customer'] == selected_cust]
-        st.subheader(f"🏢 {selected_cust} Firmasına Ait Arşiv Kayıtları")
+        # ARŞİV ARAMA VE FİLTRELEME ÇUBUĞU
+        col_search, col_cust_filt = st.columns([3, 1])
+        with col_search:
+            search_q = st.text_input("🔍 Arşivde Arama Yap (Parça Kodu / Adı, Malzeme, Firma, Tedarikçi veya Not):", placeholder="Ör: OKP4746, PLATE, 2379, ATLAS...")
+        with col_cust_filt:
+            all_custs = ["TÜM FİRMALAR"] + list(df_arch['customer'].unique())
+            selected_cust = st.selectbox("📁 Firma Filtrele:", all_custs)
 
-        for _, row in cust_df.iterrows():
+        # Filtreleri Uygula
+        filtered_df = df_arch.copy()
+        if selected_cust != "TÜM FİRMALAR":
+            filtered_df = filtered_df[filtered_df['customer'] == selected_cust]
+
+        if search_q.strip():
+            q = search_q.strip()
+            mask = (
+                filtered_df['job_name'].str.contains(q, case=False, na=False) |
+                filtered_df['material'].str.contains(q, case=False, na=False) |
+                filtered_df['customer'].str.contains(q, case=False, na=False) |
+                filtered_df['notes'].str.contains(q, case=False, na=False) |
+                filtered_df['supplier'].str.contains(q, case=False, na=False) |
+                filtered_df['dimensions'].str.contains(q, case=False, na=False)
+            )
+            filtered_df = filtered_df[mask]
+
+        st.caption(f"Arama kriterlerinize uygun **{len(filtered_df)}** adet arşiv kaydı bulundu.")
+
+        for _, row in filtered_df.iterrows():
             st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
             
             arch_path = str(row['drawing_path']) if pd.notna(row['drawing_path']) and row['drawing_path'] else ""
             arch_name = str(row['drawing_name']) if pd.notna(row['drawing_name']) and row['drawing_name'] else "teknik_resim"
+            has_arch_file = bool(arch_path and os.path.exists(arch_path))
 
-            c1, c2, c3 = st.columns([3, 3, 2])
+            c1, c2, c3, c4 = st.columns([2.5, 2.5, 3, 2])
             
             with c1:
                 st.markdown(f"#### ✅ {row['job_name']}")
+                st.write(f"🏢 **Firma:** {row['customer']}")
                 st.write(f"• **Malzeme:** {row['material'] or '-'} ({row['dimensions'] or '-'})")
                 st.write(f"• **Adet:** {row['quantity']} | **Tedarikçi:** {row['supplier'] or '-'}")
                 st.write(f"• **Isıl İşlem:** {row['heat_treatment'] or '-'}")
 
-                if arch_path and os.path.exists(arch_path):
+                if has_arch_file:
+                    st.markdown(f"<div class='file-badge-success'>🟢 ✅ {arch_name}</div>", unsafe_allow_html=True)
                     with open(arch_path, "rb") as f_bytes:
                         file_data = f_bytes.read()
                     st.download_button(
-                        label=f"📥 Yüklü Dosyayı İndir ({arch_name})",
+                        label="📥 Yüklü Dosyayı İndir",
                         data=file_data,
                         file_name=arch_name,
                         key=f"arch_dl_{row['id']}"
                     )
+                else:
+                    st.markdown("<div class='file-badge-none'>⚪ Dosya Yüklenmemiş</div>", unsafe_allow_html=True)
 
             with c2:
-                st.markdown("##### ⏱️ İmalat Süre Bilgileri")
+                st.markdown("##### ⏱️ İmalat Geçen Süre")
                 st.write(f"• **Başlama Tarihi:** {row['start_time'] or '-'}")
                 st.write(f"• **Bitiş Tarihi:** {row['end_time'] or '-'}")
                 st.info(f"⏳ **Geçen Toplam Süre:** {row['duration_str'] or 'Belirtilmedi'}")
 
             with c3:
+                st.markdown("##### 🛠️ Tezgah İşleme Süreleri (Dk)")
+                dik_val = float(row['dik_time']) if pd.notna(row['dik_time']) else 0.0
+                torna_val = float(row['torna_time']) if pd.notna(row['torna_time']) else 0.0
+                tel_val = float(row['tel_time']) if pd.notna(row['tel_time']) else 0.0
+                uni_val = float(row['uni_time']) if pd.notna(row['uni_time']) else 0.0
+
+                ca, cb = st.columns(2)
+                with ca:
+                    in_dik = st.number_input("Dik İşleme (Dk):", min_value=0.0, value=dik_val, key=f"dik_{row['id']}")
+                    in_torna = st.number_input("CNC Torna (Dk):", min_value=0.0, value=torna_val, key=f"torna_{row['id']}")
+                with cb:
+                    in_tel = st.number_input("Tel Erezyon (Dk):", min_value=0.0, value=tel_val, key=f"tel_{row['id']}")
+                    in_uni = st.number_input("Üniversal (Dk):", min_value=0.0, value=uni_val, key=f"uni_{row['id']}")
+
+            with c4:
                 st.markdown("##### 💵 Fiyat & Not Düzenle")
                 current_price = float(row['price']) if pd.notna(row['price']) else 0.0
                 price_val = st.number_input("İmalat Fiyatı (TL):", min_value=0.0, value=current_price, step=100.0, key=f"p_{row['id']}")
@@ -570,10 +660,14 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 with b1:
                     if st.button("💾 Kaydet", key=f"arch_save_{row['id']}"):
                         conn = get_db_connection()
-                        conn.execute("UPDATE work_orders SET price = ?, notes = ? WHERE id = ?", (price_val, note_val, row['id']))
+                        conn.execute('''
+                            UPDATE work_orders 
+                            SET price = ?, notes = ?, dik_time = ?, torna_time = ?, tel_time = ?, uni_time = ? 
+                            WHERE id = ?
+                        ''', (price_val, note_val, in_dik, in_torna, in_tel, in_uni, row['id']))
                         conn.commit()
                         conn.close()
-                        st.toast("Fiyat ve not güncellendi!", icon="✅")
+                        st.toast("Fiyat, tezgah süreleri ve not kaydedildi!", icon="✅")
                         st.rerun()
                 with b2:
                     if st.button("🗑️ Sil", key=f"arch_del_{row['id']}"):
@@ -581,7 +675,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                         conn.execute("DELETE FROM work_orders WHERE id = ?", (row['id'],))
                         conn.commit()
                         conn.close()
-                        st.toast("İş arşivden tamamen silindi!", icon="🗑️")
+                        st.toast("İş arşivden silindi!", icon="🗑️")
                         st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
     else:
