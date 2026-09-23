@@ -9,7 +9,7 @@ from datetime import datetime
 # SAYFA YAPILANDIRMASI & ÖZEL MODERN CSS
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Eşme Makina MES - İş Planı",
+    page_title="Eşme Makina MES - Üretim & Fason Yönetimi",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -116,7 +116,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# VERİTABANI BAĞLANTISI VE ŞEMA MİGRASYONU
+# VERİTABANI BAĞLANTISI VE OTOMATİK MİGRASYON
 # ---------------------------------------------------------
 def get_db_connection():
     conn = sqlite3.connect('esme_makina_uretim.db')
@@ -127,7 +127,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS work_orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             customer TEXT,
@@ -154,18 +154,54 @@ def init_db():
             created_at TEXT,
             is_archived INTEGER DEFAULT 0
         )
-    ''')
+    """)
     
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS chat_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_name TEXT,
             message TEXT,
             created_at TEXT
         )
-    ''')
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS heat_treatment (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sent_date TEXT,
+            supplier_firm TEXT,
+            customer TEXT,
+            product_code_name TEXT,
+            quantity INTEGER,
+            material TEXT,
+            hardness TEXT,
+            weight_kg REAL,
+            process_type TEXT,
+            status TEXT,
+            invoice_info TEXT,
+            notes TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS wjg_waterjet (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sent_date TEXT,
+            customer TEXT,
+            part_name TEXT,
+            part_code TEXT,
+            dimensions TEXT,
+            order_qty INTEGER,
+            received_qty INTEGER,
+            unit_price REAL,
+            invoice_info TEXT,
+            status TEXT,
+            notes TEXT,
+            created_at TEXT
+        )
+    """)
     
-    # Eksik Sütun Otomatik Ekleme (Migrasyon)
     cursor.execute("PRAGMA table_info(work_orders)")
     cols = [row[1] for row in cursor.fetchall()]
     
@@ -194,7 +230,7 @@ def init_db():
 
 init_db()
 
-# İŞLEMLER LISTESI (HAZIR SEÇENEĞİ DAHİL)
+# SABİT LİSTELER
 STATUS_OPTIONS = [
     "MALZEME SİPARİŞİ VERİLDİ",
     "DİK İŞLEME SIRADA",
@@ -217,7 +253,6 @@ STATUS_OPTIONS = [
     "HAZIR"
 ]
 
-# TEZGAH SEÇENEKLERİ
 MACHINE_OPTIONS = [
     "YOK / ATANMADI",
     "CNC Dik İşleme 1",
@@ -234,7 +269,6 @@ MACHINE_OPTIONS = [
     "Tel Erezyon 3"
 ]
 
-# MALZEME ÖZGÜL AĞIRLIKLARI (g/cm3)
 MATERIAL_DENSITIES = {
     "ÇELİK": 7.85,
     "KROM": 8.00,
@@ -250,7 +284,12 @@ MATERIAL_DENSITIES = {
     "KURŞUN": 11.34
 }
 
-# TARIH METNİ PARSE ETME
+HT_SUPPLIERS = ["ALPHA", "ASTAŞ", "MERSİN ISIL İŞLEM", "DİĞER"]
+HT_PROCESSES = ["SUBZERO", "NİTRASYON", "VAKUM ISIL İŞLEM", "SEMENTASYON", "TEMPER", "ISIL İŞLEM"]
+HT_STATUSES = ["ISIL İŞLEMDE", "GELDİ / TAMAMLANDI", "FATURALANDI"]
+
+WJG_STATUSES = ["KESİMDE / GÖNDERİLDİ", "GELDİ / TAMAMLANDI", "FATURA ALINDI"]
+
 def parse_date(date_str):
     if not date_str:
         return None
@@ -261,26 +300,30 @@ def parse_date(date_str):
             pass
     return None
 
-# ---------------------------------------------------------
-# SOL NAVİGASYON MENÜSÜ
-# ---------------------------------------------------------
 st.sidebar.markdown("### ⚙️ EŞME MAKİNA MES")
-st.sidebar.caption("Üretim Takip & İmalat Yönetimi v5.0")
+st.sidebar.caption("Üretim Takip & İmalat Yönetimi v6.0")
 st.sidebar.divider()
 
 menu = st.sidebar.radio(
     "Sistem Menüsü:",
-    ["📊 İş Planı (Canlı Tablo)", "🛠️ Tezgah Parkı Durumu", "📚 İmalat Hafızası (Arşiv)", "💰 Akıllı Maliyet Hesabı", "💬 Atölye Sohbeti"]
+    [
+        "📊 İş Planı (Canlı Tablo)",
+        "🛠️ Tezgah Parkı Durumu",
+        "🔥 Isıl İşlem Takip",
+        "🌊 Su Jeti (WJG) Takip",
+        "📚 İmalat Hafızası (Arşiv)",
+        "💰 Akıllı Maliyet Hesabı",
+        "💬 Atölye Sohbeti"
+    ]
 )
 
 # ---------------------------------------------------------
-# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET (HAZIR İLE ARŞİVLEME)
+# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET
 # ---------------------------------------------------------
 if menu == "📊 İş Planı (Canlı Tablo)":
     st.markdown("## 📊 İŞ PLANI")
     st.caption("Aktif müşteri siparişleri ve canlı imalat durumları tablosu.")
 
-    # Yeni İş Ekleme Formu
     with st.expander("➕ **Yeni İş / Parça Siparişi Ekle**", expanded=False):
         with st.form("add_job_form", clear_on_submit=True):
             col1, col2, col3 = st.columns(3)
@@ -314,7 +357,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 st.success(f"İş sipariş planına eklendi! İmalat süresi başlatıldı: {now_str}")
                 st.rerun()
 
-    # Veritabanından Aktif İşleri Çek
     conn = get_db_connection()
     df_active = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 0 ORDER BY id ASC", conn)
     conn.close()
@@ -335,7 +377,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
         for customer in customers:
             cust_df = df_active[df_active['customer'] == customer].copy()
             
-            # Modern Şerit Başlık
             st.markdown(f"""
                 <div class="firm-header-band">
                     <span>🏢 {customer}</span>
@@ -343,7 +384,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 </div>
             """, unsafe_allow_html=True)
             
-            # Tablo Gösterimi
             display_df = cust_df[['id', 'job_name', 'material', 'dimensions', 'supplier', 'quantity', 'heat_treatment', 'status', 'machine_name', 'deadline', 'notes']].copy()
 
             edited_df = st.data_editor(
@@ -366,7 +406,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 }
             )
 
-            # TABLO DEĞİŞİKLİKLERİNİ KAYDET (HAZIR OLANLARI OTOMATİK ARŞİVLE)
             if st.button(f"💾 {customer} Tablo Değişikliklerini Kaydet", key=f"save_{customer}", type="primary"):
                 conn = get_db_connection()
                 archived_count = 0
@@ -376,7 +415,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     new_status = str(row['status'])
                     
                     if new_status == "HAZIR":
-                        # HAZIR SEÇİLDİYSE İŞİ BİTİR VE ARŞİVLE
                         end_now_dt = datetime.now()
                         end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
                         
@@ -418,7 +456,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     st.toast(f"{customer} tablosu güncellendi!", icon="✅")
                 st.rerun()
 
-            # PARÇALARA ÖZEL DOSYA YÜKLEME & İNDİRME PANELİ
             with st.expander(f"📂 {customer} - Dosya Yükle / İndir & İşlem Yönetimi", expanded=False):
                 for _, r in cust_df.iterrows():
                     j_id = int(r['id'])
@@ -434,7 +471,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                         st.caption(f"Başlangıç: {r['start_time'] or 'Kayıtlı değil'}")
 
                     with c_badge:
-                        # DOSYA YÜKLÜ / YÜKLENMEDİ BELİRGİN İBARESİ
                         if has_file:
                             st.markdown(f"<div class='file-badge-success'>🟢 ✅ DOSYA YÜKLÜ<br><small style='color:#166534;'>{d_name}</small></div>", unsafe_allow_html=True)
                         else:
@@ -553,7 +589,208 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 3. İMALAT HAFIZASI (ARŞİVDE ARAMA ÇUBUĞU & TEZGAH SÜRELERİ)
+# 3. ISIL İŞLEM TAKİP MODÜLÜ
+# ---------------------------------------------------------
+elif menu == "🔥 Isıl İşlem Takip":
+    st.markdown("## 🔥 Isıl İşlem Takip Modülü")
+    st.caption("Fason ısıl işleme gönderilen malzemelerin firma, sertlik, kg ve fatura durum takibi.")
+
+    with st.expander("➕ **Yeni Isıl İşlem Gönderim Kaydı Ekle**", expanded=False):
+        with st.form("add_ht_form", clear_on_submit=True):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                ht_date = st.text_input("Tarih *", value=datetime.now().strftime("%d.%m.%Y"))
+                ht_supplier = st.selectbox("Isıl İşlem Firması *", HT_SUPPLIERS)
+                ht_customer = st.text_input("Müşteri Firma Adı *", placeholder="Ör: PROFACE, DENTAŞ")
+            with col2:
+                ht_prod = st.text_input("Ürün Kodu ve Adı *", placeholder="Ör: CUTTER BIÇAĞI MALAFASI")
+                ht_qty = st.number_input("Adet", min_value=1, value=1)
+                ht_mat = st.text_input("Malzeme Cinsi", value="Ç.2379")
+            with col3:
+                ht_hard = st.text_input("Hedef Sertlik", value="60-62 HRC")
+                ht_weight = st.number_input("Ağırlık (KG)", min_value=0.0, value=5.0, step=0.5)
+                ht_process = st.selectbox("İşlem Türü", HT_PROCESSES)
+
+            col_a, col_b = st.columns(2)
+            with col_a:
+                ht_status = st.selectbox("İşlem Durumu", HT_STATUSES)
+            with col_b:
+                ht_inv = st.text_input("Fatura Kontrolü / Not", placeholder="Ör: 3770+KDV veya Bekliyor")
+
+            submitted = st.form_submit_button("🔥 Isıl İşlem Kaydını Ekle", type="primary")
+            if submitted and ht_customer and ht_prod:
+                now_s = datetime.now().strftime("%d.%m.%Y %H:%M")
+                conn = get_db_connection()
+                conn.execute('''
+                    INSERT INTO heat_treatment
+                    (sent_date, supplier_firm, customer, product_code_name, quantity, material, hardness, weight_kg, process_type, status, invoice_info, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (ht_date.strip(), ht_supplier, ht_customer.upper().strip(), ht_prod.strip(), ht_qty, ht_mat.strip(), ht_hard.strip(), ht_weight, ht_process, ht_status, ht_inv.strip(), now_s))
+                conn.commit()
+                conn.close()
+                st.success("Isıl işlem gönderim kaydı başarıyla eklendi!")
+                st.rerun()
+
+    conn = get_db_connection()
+    df_ht = pd.read_sql_query("SELECT * FROM heat_treatment ORDER BY id DESC", conn)
+    conn.close()
+
+    if not df_ht.empty:
+        st.subheader("📋 Isıl İşlem Kayıtları Tablosu")
+        
+        display_ht = df_ht[['id', 'sent_date', 'supplier_firm', 'customer', 'product_code_name', 'quantity', 'material', 'hardness', 'weight_kg', 'process_type', 'status', 'invoice_info']].copy()
+
+        edited_ht = st.data_editor(
+            display_ht,
+            key="ht_editor",
+            use_container_width=True,
+            hide_index=True,
+            column_order=["sent_date", "supplier_firm", "customer", "product_code_name", "quantity", "material", "hardness", "weight_kg", "process_type", "status", "invoice_info"],
+            column_config={
+                "sent_date": st.column_config.TextColumn("TARİH", width="small"),
+                "supplier_firm": st.column_config.SelectboxColumn("ISIL İŞLEM FİRMASI", options=HT_SUPPLIERS, required=True, width="medium"),
+                "customer": st.column_config.TextColumn("FİRMA ADI", width="medium"),
+                "product_code_name": st.column_config.TextColumn("ÜRÜN KODU VE ADI", width="large"),
+                "quantity": st.column_config.NumberColumn("ADET", width="small"),
+                "material": st.column_config.TextColumn("MALZEME", width="small"),
+                "hardness": st.column_config.TextColumn("SERTLİK", width="small"),
+                "weight_kg": st.column_config.NumberColumn("KG", width="small"),
+                "process_type": st.column_config.SelectboxColumn("İŞLEM", options=HT_PROCESSES, width="medium"),
+                "status": st.column_config.SelectboxColumn("DURUM", options=HT_STATUSES, width="medium"),
+                "invoice_info": st.column_config.TextColumn("FATURA KONTROLÜ", width="medium")
+            }
+        )
+
+        c_save, c_del_sel = st.columns([3, 2])
+        with c_save:
+            if st.button("💾 Isıl İşlem Tablo Değişikliklerini Kaydet", type="primary"):
+                conn = get_db_connection()
+                for _, row in edited_ht.iterrows():
+                    conn.execute('''
+                        UPDATE heat_treatment
+                        SET sent_date=?, supplier_firm=?, customer=?, product_code_name=?, quantity=?, material=?, hardness=?, weight_kg=?, process_type=?, status=?, invoice_info=?
+                        WHERE id=?
+                    ''', (row['sent_date'], row['supplier_firm'], row['customer'], row['product_code_name'], row['quantity'], row['material'], row['hardness'], row['weight_kg'], row['process_type'], row['status'], row['invoice_info'], row['id']))
+                conn.commit()
+                conn.close()
+                st.toast("Isıl işlem tablosu güncellendi!", icon="✅")
+                st.rerun()
+
+        with c_del_sel:
+            ht_list = [f"{r['id']} - {r['customer']} ({r['product_code_name']})" for _, r in df_ht.iterrows()]
+            sel_ht_del = st.selectbox("Silinecek Isıl İşlem Kaydını Seçin:", ht_list, key="sel_ht_del")
+            if st.button("🗑️ Seçili Kaydı Sil"):
+                if sel_ht_del:
+                    del_id = int(sel_ht_del.split(" - ")[0])
+                    conn = get_db_connection()
+                    conn.execute("DELETE FROM heat_treatment WHERE id = ?", (del_id,))
+                    conn.commit()
+                    conn.close()
+                    st.toast("Isıl işlem kaydı silindi!", icon="🗑️")
+                    st.rerun()
+    else:
+        st.info("Henüz eklenmiş ısıl işlem kaydı bulunmuyor.")
+
+# ---------------------------------------------------------
+# 4. SU JETİ (WJG) TAKİP MODÜLÜ
+# ---------------------------------------------------------
+elif menu == "🌊 Su Jeti (WJG) Takip":
+    st.markdown("## 🌊 Su Jeti (WJG) Takip Modülü")
+    st.caption("Su jetinde kesilen parçaların adet, ölçü, birim fiyat ve fatura durum takibi.")
+
+    with st.expander("➕ **Yeni Su Jeti (WJG) Kesim Kaydı Ekle**", expanded=False):
+        with st.form("add_wjg_form", clear_on_submit=True):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                wjg_date = st.text_input("Kesim Tarihi *", value=datetime.now().strftime("%d.%m.%Y"))
+                wjg_customer = st.text_input("Firma Adı *", placeholder="Ör: ANKUTSAN, OMKAR")
+                wjg_part = st.text_input("Parça Tanımı *", placeholder="Ör: GAGALI SLOT BIÇAĞI")
+            with col2:
+                wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
+                wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
+                wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
+            with col3:
+                wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
+                wjg_price = st.number_input("Birim Fiyat (TL)", min_value=0.0, value=0.0, step=10.0)
+                wjg_inv = st.text_input("Fatura Bilgisi", placeholder="Ör: 9100+KDV")
+
+            wjg_status = st.selectbox("Kesim Durumu", WJG_STATUSES)
+
+            submitted = st.form_submit_button("🌊 Su Jeti Kaydını Ekle", type="primary")
+            if submitted and wjg_customer and wjg_part:
+                now_s = datetime.now().strftime("%d.%m.%Y %H:%M")
+                conn = get_db_connection()
+                conn.execute('''
+                    INSERT INTO wjg_waterjet
+                    (sent_date, customer, part_name, part_code, dimensions, order_qty, received_qty, unit_price, invoice_info, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (wjg_date.strip(), wjg_customer.upper().strip(), wjg_part.strip(), wjg_code.strip(), wjg_dims.strip(), wjg_ord_qty, wjg_rec_qty, wjg_price, wjg_inv.strip(), wjg_status, now_s))
+                conn.commit()
+                conn.close()
+                st.success("Su jeti kesim kaydı eklendi!")
+                st.rerun()
+
+    conn = get_db_connection()
+    df_wjg = pd.read_sql_query("SELECT * FROM wjg_waterjet ORDER BY id DESC", conn)
+    conn.close()
+
+    if not df_wjg.empty:
+        st.subheader("📋 Su Jeti (WJG) Kesim Kayıtları Tablosu")
+        
+        display_wjg = df_wjg[['id', 'sent_date', 'customer', 'part_name', 'part_code', 'dimensions', 'order_qty', 'received_qty', 'unit_price', 'invoice_info', 'status']].copy()
+
+        edited_wjg = st.data_editor(
+            display_wjg,
+            key="wjg_editor",
+            use_container_width=True,
+            hide_index=True,
+            column_order=["sent_date", "customer", "part_name", "part_code", "dimensions", "order_qty", "received_qty", "unit_price", "invoice_info", "status"],
+            column_config={
+                "sent_date": st.column_config.TextColumn("TARİH", width="small"),
+                "customer": st.column_config.TextColumn("FİRMA", width="medium"),
+                "part_name": st.column_config.TextColumn("PARÇA", width="large"),
+                "part_code": st.column_config.TextColumn("PARÇA KODU", width="small"),
+                "dimensions": st.column_config.TextColumn("ÖLÇÜ (mm)", width="medium"),
+                "order_qty": st.column_config.NumberColumn("SİP. ADEDİ", width="small"),
+                "received_qty": st.column_config.NumberColumn("GELEN ADET", width="small"),
+                "unit_price": st.column_config.NumberColumn("BİRİM FİYAT", width="small"),
+                "invoice_info": st.column_config.TextColumn("FATURA", width="medium"),
+                "status": st.column_config.SelectboxColumn("DURUM", options=WJG_STATUSES, width="medium")
+            }
+        )
+
+        c_save, c_del_sel = st.columns([3, 2])
+        with c_save:
+            if st.button("💾 Su Jeti Tablo Değişikliklerini Kaydet", type="primary"):
+                conn = get_db_connection()
+                for _, row in edited_wjg.iterrows():
+                    conn.execute('''
+                        UPDATE wjg_waterjet
+                        SET sent_date=?, customer=?, part_name=?, part_code=?, dimensions=?, order_qty=?, received_qty=?, unit_price=?, invoice_info=?, status=?
+                        WHERE id=?
+                    ''', (row['sent_date'], row['customer'], row['part_name'], row['part_code'], row['dimensions'], row['order_qty'], row['received_qty'], row['unit_price'], row['invoice_info'], row['status'], row['id']))
+                conn.commit()
+                conn.close()
+                st.toast("Su jeti tablosu güncellendi!", icon="✅")
+                st.rerun()
+
+        with c_del_sel:
+            wjg_list = [f"{r['id']} - {r['customer']} ({r['part_name']})" for _, r in df_wjg.iterrows()]
+            sel_wjg_del = st.selectbox("Silinecek Su Jeti Kaydını Seçin:", wjg_list, key="sel_wjg_del")
+            if st.button("🗑️ Seçili Kaydı Sil ", key="btn_del_wjg"):
+                if sel_wjg_del:
+                    del_id = int(sel_wjg_del.split(" - ")[0])
+                    conn = get_db_connection()
+                    conn.execute("DELETE FROM wjg_waterjet WHERE id = ?", (del_id,))
+                    conn.commit()
+                    conn.close()
+                    st.toast("Su jeti kaydı silindi!", icon="🗑️")
+                    st.rerun()
+    else:
+        st.info("Henüz eklenmiş su jeti kaydı bulunmuyor.")
+
+# ---------------------------------------------------------
+# 5. İMALAT HAFIZASI (ARŞİV)
 # ---------------------------------------------------------
 elif menu == "📚 İmalat Hafızası (Arşiv)":
     st.markdown("## 📚 İmalat Hafızası & Biten İşler Arşivi")
@@ -573,7 +810,6 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         df_arch['supplier'] = df_arch['supplier'].fillna("")
         df_arch['dimensions'] = df_arch['dimensions'].fillna("")
 
-        # ARŞİV ARAMA VE FİLTRELEME ÇUBUĞU
         col_search, col_cust_filt = st.columns([3, 1])
         with col_search:
             search_q = st.text_input("🔍 Arşivde Arama Yap (Parça Kodu / Adı, Malzeme, Firma, Tedarikçi veya Not):", placeholder="Ör: OKP4746, PLATE, 2379, ATLAS...")
@@ -581,7 +817,6 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
             all_custs = ["TÜM FİRMALAR"] + list(df_arch['customer'].unique())
             selected_cust = st.selectbox("📁 Firma Filtrele:", all_custs)
 
-        # Filtreleri Uygula
         filtered_df = df_arch.copy()
         if selected_cust != "TÜM FİRMALAR":
             filtered_df = filtered_df[filtered_df['customer'] == selected_cust]
@@ -682,7 +917,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
 # ---------------------------------------------------------
-# 4. AKILLI MALİYET HESABI
+# 6. AKILLI MALİYET HESABI
 # ---------------------------------------------------------
 elif menu == "💰 Akıllı Maliyet Hesabı":
     st.markdown("## 💰 Akıllı Malzeme Ağırlığı & Maliyet Hesabı (TL)")
@@ -748,7 +983,6 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
         profit_margin = st.number_input("Hedef Kar Marjı (%):", min_value=0.0, value=35.0, step=5.0)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # 4 Tezgah Grubu Maliyet Hesabı
     raw_cost = calculated_weight * unit_mat_price
     machining_cost = ((dik_süre/60)*rate_dik) + ((torna_süre/60)*rate_torna) + ((tel_süre/60)*rate_tel) + ((uni_süre/60)*rate_uni)
     total_cost = raw_cost + machining_cost + heat_cost
@@ -764,7 +998,7 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
     m4.metric("Önerilen Birim Satış Fiyatı", f"{round(final_price, 2):,} TL".replace(",", "."), delta=f"%{profit_margin} Kar")
 
 # ---------------------------------------------------------
-# 5. ATÖLYE SOHBETİ
+# 7. ATÖLYE SOHBETİ (MESAJ DÜZENLEME & SİLME BUTONLARI SAĞDA)
 # ---------------------------------------------------------
 elif menu == "💬 Atölye Sohbeti":
     st.markdown("## 💬 Atölye İçi Dijital Mesajlaşma & Not Panosu")
@@ -806,14 +1040,52 @@ elif menu == "💬 Atölye Sohbeti":
 
     if not df_chat.empty:
         for _, r in df_chat.iterrows():
-            st.markdown(f"""
-                <div class='custom-card' style='border-left: 5px solid #dc2626;'>
-                    <div style='display: flex; justify-content: space-between; align-items: center;'>
-                        <strong style='color: #0f172a; font-size: 1.05rem;'>👤 {r['user_name']}</strong>
-                        <span style='color: #64748b; font-size: 0.85rem;'>🕒 {r['created_at']}</span>
-                    </div>
-                    <p style='margin-top: 8px; font-size: 1rem; color: #334155;'>{r['message']}</p>
-                </div>
-            """, unsafe_allow_html=True)
+            msg_id = int(r['id'])
+            
+            st.markdown("<div class='custom-card' style='border-left: 5px solid #dc2626;'>", unsafe_allow_html=True)
+            
+            c_m_main, c_m_act = st.columns([4, 1])
+            
+            with c_m_main:
+                st.markdown(f"**👤 {r['user_name']}** &nbsp;&nbsp; `<small style='color:#64748b;'>🕒 {r['created_at']}</small>`", unsafe_allow_html=True)
+                st.write(r['message'])
+
+            with c_m_act:
+                # MESAJLARIN SAĞ TARAFINDAKİ DÜZENLE VE SİL BUTONLARI
+                btn_e, btn_d = st.columns(2)
+                with btn_e:
+                    if st.button("✏️", key=f"c_edit_btn_{msg_id}", help="Mesajı Düzenle"):
+                        st.session_state[f"editing_msg_{msg_id}"] = True
+                with btn_d:
+                    if st.button("🗑️", key=f"c_del_btn_{msg_id}", help="Mesajı Sil"):
+                        conn = get_db_connection()
+                        conn.execute("DELETE FROM chat_messages WHERE id = ?", (msg_id,))
+                        conn.commit()
+                        conn.close()
+                        st.toast("Mesaj silindi!", icon="🗑️")
+                        st.rerun()
+
+            # DÜZENLEME FORMU AÇILDIĞINDA
+            if st.session_state.get(f"editing_msg_{msg_id}", False):
+                with st.form(f"form_edit_msg_{msg_id}"):
+                    new_u = st.text_input("Kullanıcı Adı:", value=r['user_name'])
+                    new_m = st.text_area("Mesaj Metni:", value=r['message'])
+                    
+                    ce1, ce2 = st.columns(2)
+                    with ce1:
+                        if st.form_submit_button("💾 Güncelle", type="primary"):
+                            conn = get_db_connection()
+                            conn.execute("UPDATE chat_messages SET user_name = ?, message = ? WHERE id = ?", (new_u.strip(), new_m.strip(), msg_id))
+                            conn.commit()
+                            conn.close()
+                            st.session_state[f"editing_msg_{msg_id}"] = False
+                            st.toast("Mesaj güncellendi!", icon="✅")
+                            st.rerun()
+                    with ce2:
+                        if st.form_submit_button("❌ İptal"):
+                            st.session_state[f"editing_msg_{msg_id}"] = False
+                            st.rerun()
+
+            st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.info("Henüz sohbet panosunda mesaj bulunmuyor. İlk mesajı siz gönderebilirsiniz!")
