@@ -332,7 +332,6 @@ MATERIAL_DENSITIES = {
     "KURŞUN": 11.34
 }
 
-# GÜNCELLENEN ISIL İŞLEM LİSTELERİ
 HT_SUPPLIERS = [
     "ALPHA ISIL İŞLEM", 
     "ASTAŞ ISIL İŞLEM", 
@@ -398,7 +397,7 @@ with col_header_title:
 st.divider()
 
 # ---------------------------------------------------------
-# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET (OTOMATİK KAYITLI & SAĞDA DOSYA YÜKLE/İNDİR)
+# 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET
 # ---------------------------------------------------------
 if menu == "📊 İş Planı (Canlı Tablo)":
     st.markdown("## 📊 İŞ PLANI")
@@ -459,7 +458,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 </div>
             """, unsafe_allow_html=True)
 
-            # TABLO BAŞLIKLARI (SATIR İÇİ DOSYA BÖLÜMÜ EN SAĞDA)
             h1, h2, h3, h4, h5, h6, h7, h8 = st.columns([2, 1.2, 1, 1.5, 1.5, 1.5, 1.8, 2.2])
             with h1: st.caption("**İŞ / PARÇA ADI**")
             with h2: st.caption("**MALZEME / ÖLÇÜ**")
@@ -495,7 +493,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     new_ddl = st.text_input("Termin", value=row['deadline'], key=f"ddl_{j_id}", label_visibility="collapsed", placeholder="Termin")
                     new_note = st.text_input("Not", value=row['notes'], key=f"note_{j_id}", label_visibility="collapsed", placeholder="Notlar")
                 
-                # EN SAĞ BÖLÜM: DOSYA YÜKLE / İNDİR & SİL
                 with c8:
                     d_path = str(row['drawing_path'])
                     d_name = str(row['drawing_name'])
@@ -536,7 +533,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-                # OTOMATİK KAYIT VE "HAZIR" DURUMU KONTROLÜ
                 if (new_job != row['job_name'] or new_mat != row['material'] or new_dim != row['dimensions'] or 
                     new_qty != row['quantity'] or new_heat != row['heat_treatment'] or new_st != row['status'] or 
                     new_mac != row['machine_name'] or new_ddl != row['deadline'] or new_note != row['notes']):
@@ -649,7 +645,7 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 3. ISIL İŞLEM TAKİP MODÜLÜ (GÜNCELLENMİŞ FİRMALAR & OTOMATİK KAYIT)
+# 3. ISIL İŞLEM TAKİP MODÜLÜ
 # ---------------------------------------------------------
 elif menu == "🔥 Isıl İşlem Takip":
     st.markdown("## 🔥 Isıl İşlem Takip Modülü")
@@ -721,7 +717,6 @@ elif menu == "🔥 Isıl İşlem Takip":
             }
         )
 
-        # OTOMATİK KAYIT KONTROLÜ
         if not edited_ht.equals(display_ht):
             conn = get_db_connection()
             for _, row in edited_ht.iterrows():
@@ -749,7 +744,7 @@ elif menu == "🔥 Isıl İşlem Takip":
         st.info("Henüz eklenmiş ısıl işlem kaydı bulunmuyor.")
 
 # ---------------------------------------------------------
-# 4. SU JETİ (WJG) TAKİP MODÜLÜ (OTOMATİK KAYIT)
+# 4. SU JETİ (WJG) TAKİP MODÜLÜ
 # ---------------------------------------------------------
 elif menu == "🌊 Su Jeti (WJG) Takip":
     st.markdown("## 🌊 Su Jeti (WJG) Takip Modülü")
@@ -764,27 +759,27 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 wjg_part = st.text_input("Parça Tanımı *", placeholder="Ör: GAGALI SLOT BIÇAĞI")
             with col2:
                 wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
-                wjg_dims = st.text_input("Ölçu (mm)", placeholder="Ör: 231x48x10")
+                wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
                 wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
             with col3:
                 wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
-                wjg_price = st.number_input("Birim Fiyat (TL)", min_value=0.0, value=0.0, step=10.0)
-                wjg_inv = st.text_input("Fatura Bilgisi", placeholder="Ör: 9100+KDV")
+                wjg_price = st.number_input("Birim Fiyat (TL)", min_value=0.0, value=150.0, step=10.0)
+                wjg_st = st.selectbox("Kesim Durumu", WJG_STATUSES)
 
-            wjg_status = st.selectbox("Kesim Durumu", WJG_STATUSES)
+            wjg_inv = st.text_input("Fatura / Açıklama Notu", placeholder="Ör: Fatura Bekleniyor")
 
-            submitted = st.form_submit_button("🌊 Su Jeti Kaydını Ekle", type="primary")
-            if submitted and wjg_customer and wjg_part:
+            submitted_wjg = st.form_submit_button("🌊 Su Jeti Kesim Kaydını Ekle", type="primary")
+            if submitted_wjg and wjg_customer and wjg_part:
                 now_s = datetime.now().strftime("%d.%m.%Y %H:%M")
                 conn = get_db_connection()
                 conn.execute('''
                     INSERT INTO wjg_waterjet
-                    (sent_date, customer, part_name, part_code, dimensions, order_qty, received_qty, unit_price, invoice_info, status, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (wjg_date.strip(), wjg_customer.upper().strip(), wjg_part.strip(), wjg_code.strip(), wjg_dims.strip(), wjg_ord_qty, wjg_rec_qty, wjg_price, wjg_inv.strip(), wjg_status, now_s))
+                    (sent_date, customer, part_name, part_code, dimensions, order_qty, received_qty, unit_price, invoice_info, status, notes, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?)
+                ''', (wjg_date.strip(), wjg_customer.upper().strip(), wjg_part.strip(), wjg_code.strip(), wjg_dims.strip(), wjg_ord_qty, wjg_rec_qty, wjg_price, wjg_inv.strip(), wjg_st, now_s))
                 conn.commit()
                 conn.close()
-                st.toast("Su jeti kesim kaydı eklendi!", icon="🌊")
+                st.toast("Su Jeti kesim kaydı eklendi!", icon="🌊")
                 st.rerun()
 
     conn = get_db_connection()
@@ -794,44 +789,43 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
     if not df_wjg.empty:
         st.subheader("📋 Su Jeti (WJG) Kesim Kayıtları Tablosu")
         
-        display_wjg = df_wjg[['id', 'sent_date', 'customer', 'part_name', 'part_code', 'dimensions', 'order_qty', 'received_qty', 'unit_price', 'invoice_info', 'status']].copy()
+        display_wjg = df_wjg[['id', 'sent_date', 'customer', 'part_name', 'part_code', 'dimensions', 'order_qty', 'received_qty', 'unit_price', 'status', 'invoice_info']].copy()
 
         edited_wjg = st.data_editor(
             display_wjg,
             key="wjg_editor",
             use_container_width=True,
             hide_index=True,
-            column_order=["sent_date", "customer", "part_name", "part_code", "dimensions", "order_qty", "received_qty", "unit_price", "invoice_info", "status"],
+            column_order=["sent_date", "customer", "part_name", "part_code", "dimensions", "order_qty", "received_qty", "unit_price", "status", "invoice_info"],
             column_config={
                 "sent_date": st.column_config.TextColumn("TARİH", width="small"),
-                "customer": st.column_config.TextColumn("FİRMA", width="medium"),
-                "part_name": st.column_config.TextColumn("PARÇA", width="large"),
-                "part_code": st.column_config.TextColumn("PARÇA KODU", width="small"),
-                "dimensions": st.column_config.TextColumn("ÖLÇÜ (mm)", width="medium"),
-                "order_qty": st.column_config.NumberColumn("SİP. ADEDİ", width="small"),
+                "customer": st.column_config.TextColumn("FİRMA ADI", width="medium"),
+                "part_name": st.column_config.TextColumn("PARÇA TANIMI", width="medium"),
+                "part_code": st.column_config.TextColumn("KODU", width="small"),
+                "dimensions": st.column_config.TextColumn("ÖLÇÜ", width="small"),
+                "order_qty": st.column_config.NumberColumn("SİP. ADET", width="small"),
                 "received_qty": st.column_config.NumberColumn("GELEN ADET", width="small"),
-                "unit_price": st.column_config.NumberColumn("BİRİM FİYAT", width="small"),
-                "invoice_info": st.column_config.TextColumn("FATURA", width="medium"),
-                "status": st.column_config.SelectboxColumn("DURUM", options=WJG_STATUSES, width="medium")
+                "unit_price": st.column_config.NumberColumn("BİRİM FİYAT (₺)", width="small", format="%.2f ₺"),
+                "status": st.column_config.SelectboxColumn("DURUM", options=WJG_STATUSES, width="medium"),
+                "invoice_info": st.column_config.TextColumn("FATURA / NOT", width="medium")
             }
         )
 
-        # OTOMATİK KAYIT KONTROLÜ
         if not edited_wjg.equals(display_wjg):
             conn = get_db_connection()
             for _, row in edited_wjg.iterrows():
                 conn.execute('''
                     UPDATE wjg_waterjet
-                    SET sent_date=?, customer=?, part_name=?, part_code=?, dimensions=?, order_qty=?, received_qty=?, unit_price=?, invoice_info=?, status=?
+                    SET sent_date=?, customer=?, part_name=?, part_code=?, dimensions=?, order_qty=?, received_qty=?, unit_price=?, status=?, invoice_info=?
                     WHERE id=?
-                ''', (row['sent_date'], row['customer'], row['part_name'], row['part_code'], row['dimensions'], row['order_qty'], row['received_qty'], row['unit_price'], row['invoice_info'], row['status'], row['id']))
+                ''', (row['sent_date'], row['customer'], row['part_name'], row['part_code'], row['dimensions'], row['order_qty'], row['received_qty'], row['unit_price'], row['status'], row['invoice_info'], row['id']))
             conn.commit()
             conn.close()
             st.toast("Su jeti tablosu otomatik kaydedildi", icon="💾")
             st.rerun()
 
         wjg_list = [f"{r['id']} - {r['customer']} ({r['part_name']})" for _, r in df_wjg.iterrows()]
-        sel_wjg_del = st.selectbox("Silinecek Su Jeti Kaydını Seçin:", ["Seçiniz..."] + wjg_list, key="sel_wjg_del")
+        sel_wjg_del = st.selectbox("Silinecek Kesim Kaydını Seçin:", ["Seçiniz..."] + wjg_list, key="sel_wjg_del")
         if st.button("🗑️ Seçili Su Jeti Kaydını Sil") and sel_wjg_del != "Seçiniz...":
             del_id = int(sel_wjg_del.split(" - ")[0])
             conn = get_db_connection()
@@ -841,132 +835,76 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
             st.toast("Su jeti kaydı silindi!", icon="🗑️")
             st.rerun()
     else:
-        st.info("Henüz eklenmiş su jeti kaydı bulunmuyor.")
+        st.info("Henüz eklenmiş su jeti kesim kaydı bulunmuyor.")
 
 # ---------------------------------------------------------
-# 5. İMALAT HAFIZASI (ARŞİV)
+# 5. İMALAT HAFIZASI (ARŞİV) MODÜLÜ
 # ---------------------------------------------------------
 elif menu == "📚 İmalat Hafızası (Arşiv)":
-    st.markdown("## 📚 İmalat Hafızası & Biten İşler Arşivi")
-    st.caption("Tamamlanıp arşive kaldırılan geçmiş işlerinizin detaylı dökümü, dosyaları, imalat süreleri ve tezgah bazlı süre kayıtları.")
-    
+    st.markdown("## 📚 İMALAT HAFIZASI (GEÇMİŞ SİPARİŞ ARŞİVİ)")
+    st.caption("Tamamlanan işlerin imalat süreleri, notları ve teknik resim hafızası.")
+
     conn = get_db_connection()
     df_arch = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 1 ORDER BY id DESC", conn)
     conn.close()
 
     if not df_arch.empty:
-        df_arch['drawing_path'] = df_arch['drawing_path'].fillna("")
-        df_arch['drawing_name'] = df_arch['drawing_name'].fillna("")
-        df_arch['notes'] = df_arch['notes'].fillna("")
-        df_arch['customer'] = df_arch['customer'].fillna("")
-        df_arch['job_name'] = df_arch['job_name'].fillna("")
-        df_arch['material'] = df_arch['material'].fillna("")
-        df_arch['supplier'] = df_arch['supplier'].fillna("")
-        df_arch['dimensions'] = df_arch['dimensions'].fillna("")
-
-        col_search, col_cust_filt = st.columns([3, 1])
+        col_search, col_filter = st.columns([2, 1])
         with col_search:
-            search_q = st.text_input("🔍 Arşivde Arama Yap (Parça Kodu / Adı, Malzeme, Firma, Tedarikçi veya Not):", placeholder="Ör: OKP4746, PLATE, 2379, ATLAS...")
-        with col_cust_filt:
-            all_custs = ["TÜM FİRMALAR"] + list(df_arch['customer'].unique())
-            selected_cust = st.selectbox("📁 Firma Filtrele:", all_custs)
+            search_query = st.text_input("🔍 Arşivde Arama Yap (Parça Adı, Müşteri, Malzeme)", placeholder="Ör: OKP4746, PHILSA...")
+        with col_filter:
+            cust_filter = st.selectbox("Müşteri Filtresi", ["TÜMÜ"] + list(df_arch['customer'].unique()))
 
         filtered_df = df_arch.copy()
-        if selected_cust != "TÜM FİRMALAR":
-            filtered_df = filtered_df[filtered_df['customer'] == selected_cust]
+        if search_query:
+            q = search_query.lower()
+            filtered_df = filtered_df[
+                filtered_df['job_name'].str.lower().str.contains(q, na=False) |
+                filtered_df['customer'].str.lower().str.contains(q, na=False) |
+                filtered_df['material'].str.lower().str.contains(q, na=False)
+            ]
+        if cust_filter != "TÜMÜ":
+            filtered_df = filtered_df[filtered_df['customer'] == cust_filter]
 
-        if search_q.strip():
-            q = search_q.strip()
-            mask = (
-                filtered_df['job_name'].str.contains(q, case=False, na=False) |
-                filtered_df['material'].str.contains(q, case=False, na=False) |
-                filtered_df['customer'].str.contains(q, case=False, na=False) |
-                filtered_df['notes'].str.contains(q, case=False, na=False) |
-                filtered_df['supplier'].str.contains(q, case=False, na=False) |
-                filtered_df['dimensions'].str.contains(q, case=False, na=False)
-            )
-            filtered_df = filtered_df[mask]
+        st.subheader(f"🗂️ Bulunan Arşiv Kaydı: {len(filtered_df)} Adet")
 
-        st.caption(f"Arama kriterlerinize uygun **{len(filtered_df)}** adet arşiv kaydı bulundu.")
+        for _, r in filtered_df.iterrows():
+            arch_id = int(r['id'])
+            with st.expander(f"📦 **{r['customer']}** | {r['job_name']} - ({r['quantity']} Adet) - Tamamlanma: {r['end_time'] or 'Belirtilmedi'}"):
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.write(f"**Malzeme:** {r['material']}")
+                    st.write(f"**Ölçü:** {r['dimensions']}")
+                    st.write(f"**Tedarikçi:** {r['supplier']}")
+                with c2:
+                    st.write(f"**Isıl İşlem:** {r['heat_treatment']}")
+                    st.write(f"**Başlangıç:** {r['start_time']}")
+                    st.write(f"**Bitiş:** {r['end_time']}")
+                with c3:
+                    st.write(f"**Geçen Süre:** {r['duration_str']}")
+                    st.write(f"**Notlar:** {r['notes']}")
 
-        for _, row in filtered_df.iterrows():
-            st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-            
-            arch_path = str(row['drawing_path']) if pd.notna(row['drawing_path']) and row['drawing_path'] else ""
-            arch_name = str(row['drawing_name']) if pd.notna(row['drawing_name']) and row['drawing_name'] else "teknik_resim"
-            has_arch_file = bool(arch_path and os.path.exists(arch_path))
+                if r['drawing_path'] and os.path.exists(r['drawing_path']):
+                    with open(r['drawing_path'], "rb") as f_bytes:
+                        st.download_button(f"📥 Technical Drawing: {r['drawing_name']}", f_bytes.read(), file_name=r['drawing_name'], key=f"arch_dl_{arch_id}")
 
-            c1, c2, c3, c4 = st.columns([2.5, 2.5, 3, 2])
-            
-            with c1:
-                st.markdown(f"#### ✅ {row['job_name']}")
-                st.write(f"🏢 **Firma:** {row['customer']}")
-                st.write(f"• **Malzeme:** {row['material'] or '-'} ({row['dimensions'] or '-'})")
-                st.write(f"• **Adet:** {row['quantity']} | **Tedarikçi:** {row['supplier'] or '-'}")
-                st.write(f"• **Isıl İşlem:** {row['heat_treatment'] or '-'}")
-
-                if has_arch_file:
-                    st.caption(f"🟢 **Yüklü Dosya:** {arch_name}")
-                    with open(arch_path, "rb") as f_bytes:
-                        file_data = f_bytes.read()
-                    st.download_button(
-                        label="📥 Dosyayı İndir",
-                        data=file_data,
-                        file_name=arch_name,
-                        key=f"arch_dl_{row['id']}"
-                    )
-                else:
-                    st.caption("⚪ Dosya Yüklenmemiş")
-
-            with c2:
-                st.markdown("##### ⏱️ İmalat Geçen Süre")
-                st.write(f"• **Başlama Tarihi:** {row['start_time'] or '-'}")
-                st.write(f"• **Bitiş Tarihi:** {row['end_time'] or '-'}")
-                st.info(f"⏳ **Geçen Toplam Süre:** {row['duration_str'] or 'Belirtilmedi'}")
-
-            with c3:
-                st.markdown("##### 🛠️ Tezgah İşleme Süreleri (Dk)")
-                dik_val = float(row['dik_time']) if pd.notna(row['dik_time']) else 0.0
-                torna_val = float(row['torna_time']) if pd.notna(row['torna_time']) else 0.0
-                tel_val = float(row['tel_time']) if pd.notna(row['tel_time']) else 0.0
-                uni_val = float(row['uni_time']) if pd.notna(row['uni_time']) else 0.0
-
-                ca, cb = st.columns(2)
-                with ca:
-                    in_dik = st.number_input("Dik İşleme (Dk):", min_value=0.0, value=dik_val, key=f"dik_{row['id']}")
-                    in_torna = st.number_input("CNC Torna (Dk):", min_value=0.0, value=torna_val, key=f"torna_{row['id']}")
-                with cb:
-                    in_tel = st.number_input("Tel Erezyon (Dk):", min_value=0.0, value=tel_val, key=f"tel_{row['id']}")
-                    in_uni = st.number_input("Üniversal (Dk):", min_value=0.0, value=uni_val, key=f"uni_{row['id']}")
-
-            with c4:
-                st.markdown("##### 💵 Fiyat & Not Düzenle")
-                current_price = float(row['price']) if pd.notna(row['price']) else 0.0
-                price_val = st.number_input("İmalat Fiyatı (TL):", min_value=0.0, value=current_price, step=100.0, key=f"p_{row['id']}")
-                note_val = st.text_area("Arşiv Notu:", value=row['notes'] or "", key=f"n_{row['id']}", height=80)
-                
-                b1, b2 = st.columns(2)
-                with b1:
-                    if st.button("💾 Kaydet", key=f"arch_save_{row['id']}"):
+                col_b1, col_b2 = st.columns([1, 1])
+                with col_b1:
+                    if st.button("🔄 İş Planına Geri Taşı", key=f"restore_{arch_id}"):
                         conn = get_db_connection()
-                        conn.execute('''
-                            UPDATE work_orders 
-                            SET price = ?, notes = ?, dik_time = ?, torna_time = ?, tel_time = ?, uni_time = ? 
-                            WHERE id = ?
-                        ''', (price_val, note_val, in_dik, in_torna, in_tel, in_uni, row['id']))
+                        conn.execute("UPDATE work_orders SET is_archived = 0, status = 'DİK İŞLEME SIRADA' WHERE id = ?", (arch_id,))
                         conn.commit()
                         conn.close()
-                        st.toast("Fiyat ve süreler kaydedildi!", icon="✅")
+                        st.toast("İş tekrar canlı plana aktarıldı!", icon="🔄")
                         st.rerun()
-                with b2:
-                    if st.button("🗑️ Sil", key=f"arch_del_{row['id']}"):
+                with col_b2:
+                    if st.button("🗑️ Arşivden Kalıcı Sil", key=f"arch_del_{arch_id}"):
                         conn = get_db_connection()
-                        conn.execute("DELETE FROM work_orders WHERE id = ?", (row['id'],))
+                        conn.execute("DELETE FROM work_orders WHERE id = ?", (arch_id,))
                         conn.commit()
                         conn.close()
-                        st.toast("İş arşivden silindi!", icon="🗑️")
+                        st.toast("Arşiv kaydı silindi!", icon="🗑️")
                         st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
@@ -974,170 +912,114 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
 # 6. AKILLI MALİYET HESABI
 # ---------------------------------------------------------
 elif menu == "💰 Akıllı Maliyet Hesabı":
-    st.markdown("## 💰 Akıllı Malzeme Ağırlığı & Maliyet Hesabı (TL)")
-    st.caption("Ölçüleri girerek parçanın teorik kg ağırlığını ve tüm tezgahların işleme süreleriyle maliyetini hesaplayın.")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-        st.subheader("1. Malzeme Sınıfı ve Ölçüler")
-        mat_choice = st.selectbox("Malzeme Türü Seçiniz:", list(MATERIAL_DENSITIES.keys()))
-        density = MATERIAL_DENSITIES[mat_choice]
-        st.caption(f"Malzeme Özgül Ağırlığı: **{density} g/cm³**")
-        
-        shape = st.radio("Malzeme Formu:", ["Dolu Kütük / Dikdörtgen", "Dolu Mil / Çap", "Boru / Tüp"])
-        calculated_weight = 0.0
-        
-        if shape == "Dolu Kütük / Dikdörtgen":
-            t_mm = st.number_input("Kalınlık (mm):", min_value=1.0, value=20.0)
-            w_mm = st.number_input("Genişlik (mm):", min_value=1.0, value=100.0)
-            l_mm = st.number_input("Boy (mm):", min_value=1.0, value=150.0)
-            vol_cm3 = (t_mm * w_mm * l_mm) / 1000.0
-            calculated_weight = (vol_cm3 * density) / 1000.0
+    st.markdown("## 💰 Akıllı Parça & İşleme Maliyet Hesaplayıcı")
+    st.caption("Hammadde ağırlığı, tezgah saat ücretleri ve fason giderleri ile hızlı teklif maliyeti oluşturun.")
 
-        elif shape == "Dolu Mil / Çap":
-            d_mm = st.number_input("Dış Çap (Ø mm):", min_value=1.0, value=50.0)
-            l_mm = st.number_input("Boy (mm):", min_value=1.0, value=200.0)
-            r_cm = (d_mm / 10.0) / 2.0
-            l_cm = l_mm / 10.0
-            vol_cm3 = math.pi * (r_cm ** 2) * l_cm
-            calculated_weight = (vol_cm3 * density) / 1000.0
+    t1, t2 = st.tabs(["⚖️ Hammadde Ağırlık Hesabı", "⚙️ İşleme & Teklif Maliyeti"])
 
-        elif shape == "Boru / Tüp":
-            d_out = st.number_input("Dış Çap (Dış Ø mm):", min_value=2.0, value=60.0)
-            d_in = st.number_input("İç Çap (İç Ø mm):", min_value=1.0, value=40.0)
-            l_mm = st.number_input("Boy (mm):", min_value=1.0, value=100.0)
-            r_out_cm = (d_out / 10.0) / 2.0
-            r_in_cm = (d_in / 10.0) / 2.0
-            l_cm = l_mm / 10.0
-            vol_cm3 = math.pi * ((r_out_cm ** 2) - (r_in_cm ** 2)) * l_cm
-            calculated_weight = (vol_cm3 * density) / 1000.0 if d_out > d_in else 0.0
+    with t1:
+        c1, c2 = st.columns(2)
+        with c1:
+            shape = st.selectbox("Geometri / Kesit Türü", ["Dolu Mil (Silindir)", "Lama / Blok (L x W x H)", "Boru (Dış D - İç D - Boy)"])
+            mat_type = st.selectbox("Malzeme Türü", list(MATERIAL_DENSITIES.keys()))
+            density = MATERIAL_DENSITIES[mat_type]
+            st.info(f"Seçilen Malzeme Özkütlesi: **{density} g/cm³**")
 
-        st.success(f"⚖️ **Hesaplanan Net Ağırlık:** {round(calculated_weight, 3)} Kg")
-        unit_mat_price = st.number_input("Hammadde Kg Fiyatı (TL):", min_value=1.0, value=250.0, step=10.0)
-        st.markdown("</div>", unsafe_allow_html=True)
+        weight_kg = 0.0
+        with c2:
+            if shape == "Dolu Mil (Silindir)":
+                dia = st.number_input("Çap (mm)", min_value=1.0, value=50.0)
+                length = st.number_input("Boy (mm)", min_value=1.0, value=100.0)
+                vol_cm3 = (math.pi * ((dia / 2) ** 2) * length) / 1000
+                weight_kg = (vol_cm3 * density) / 1000
 
-    with col2:
-        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-        st.subheader("2. Tezgah Süreleri & Saat Ücretleri")
-        
-        ca, cb = st.columns(2)
-        with ca:
-            dik_süre = st.number_input("CNC Dik İşleme Süresi (Dk):", value=30)
-            torna_süre = st.number_input("CNC Torna Süresi (Dk):", value=15)
-            tel_süre = st.number_input("Tel Erezyon Süresi (Dk):", value=20)
-            uni_süre = st.number_input("Üniversal Tezgah Süresi (Dk):", value=10)
-        with cb:
-            rate_dik = st.number_input("Dik İşleme (TL/Saat):", value=1200.0)
-            rate_torna = st.number_input("Torna (TL/Saat):", value=1000.0)
-            rate_tel = st.number_input("Tel Erezyon (TL/Saat):", value=800.0)
-            rate_uni = st.number_input("Üniversal Tezgah (TL/Saat):", value=600.0)
+            elif shape == "Lama / Blok (L x W x H)":
+                l = st.number_input("Uzunluk - L (mm)", min_value=1.0, value=100.0)
+                w = st.number_input("Genişlik - W (mm)", min_value=1.0, value=50.0)
+                h = st.number_input("Yükseklik/Kalınlık - H (mm)", min_value=1.0, value=20.0)
+                vol_cm3 = (l * w * h) / 1000
+                weight_kg = (vol_cm3 * density) / 1000
 
-        heat_cost = st.number_input("Isıl İşlem / Kaplama Maliyeti (TL):", value=350.0)
-        profit_margin = st.number_input("Hedef Kar Marjı (%):", min_value=0.0, value=35.0, step=5.0)
-        st.markdown("</div>", unsafe_allow_html=True)
+            elif shape == "Boru (Dış D - İç D - Boy)":
+                out_d = st.number_input("Dış Çap (mm)", min_value=1.0, value=60.0)
+                in_d = st.number_input("İç Çap (mm)", min_value=0.0, value=40.0)
+                l = st.number_input("Boy (mm)", min_value=1.0, value=100.0)
+                vol_cm3 = (math.pi * (((out_d / 2) ** 2) - ((in_d / 2) ** 2)) * l) / 1000
+                weight_kg = (vol_cm3 * density) / 1000 if out_d > in_d else 0.0
 
-    raw_cost = calculated_weight * unit_mat_price
-    machining_cost = ((dik_süre/60)*rate_dik) + ((torna_süre/60)*rate_torna) + ((tel_süre/60)*rate_tel) + ((uni_süre/60)*rate_uni)
-    total_cost = raw_cost + machining_cost + heat_cost
-    final_price = total_cost * (1 + (profit_margin / 100))
+            unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺ / Euro)", min_value=0.0, value=120.0)
+            total_mat_cost = weight_kg * unit_price_kg
 
-    st.divider()
-    st.subheader("📊 Finansal Özet Metrikleri (TL)")
-    
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Hammadde Tutarı", f"{round(raw_cost, 2):,} TL".replace(",", "."))
-    m2.metric("Tezgah İşleme Tutarı", f"{round(machining_cost, 2):,} TL".replace(",", "."))
-    m3.metric("Net Yalın İmalat Maliyeti", f"{round(total_cost, 2):,} TL".replace(",", "."))
-    m4.metric("Önerilen Birim Satış Fiyatı", f"{round(final_price, 2):,} TL".replace(",", "."), delta=f"%{profit_margin} Kar")
+            st.metric("Hesaplanan Parça Ağırlığı", f"{weight_kg:.3f} KG")
+            st.metric("Tahmini Hammadde Maliyeti", f"{total_mat_cost:.2f} ₺")
+
+    with t2:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("⏱️ İşleme Süreleri (Dakika)")
+            t_dik = st.number_input("CNC Dik İşleme (Dakika)", min_value=0.0, value=30.0)
+            t_torna = st.number_input("CNC Torna (Dakika)", min_value=0.0, value=15.0)
+            t_tel = st.number_input("Tel Erezyon (Dakika)", min_value=0.0, value=45.0)
+            t_uni = st.number_input("Üniversal / Taşlama (Dakika)", min_value=0.0, value=10.0)
+
+        with col2:
+            st.subheader("💳 Tezgah Saat Ücretleri (₺ / Saat)")
+            r_dik = st.number_input("CNC Dik Saat Ücreti", min_value=0.0, value=1200.0)
+            r_torna = st.number_input("CNC Torna Saat Ücreti", min_value=0.0, value=1000.0)
+            r_tel = st.number_input("Tel Erezyon Saat Ücreti", min_value=0.0, value=800.0)
+            r_uni = st.number_input("Üniversal Saat Ücreti", min_value=0.0, value=600.0)
+
+        c_fason1, c_fason2 = st.columns(2)
+        with c_fason1:
+            fason_ht = st.number_input("Isıl İşlem Fason Maliyeti (₺)", min_value=0.0, value=150.0)
+            fason_coat = st.number_input("Kaplama / Su Jeti Fason (₺)", min_value=0.0, value=0.0)
+        with c_fason2:
+            mat_cost_input = st.number_input("Hammadde Parça Maliyeti (₺)", min_value=0.0, value=total_mat_cost)
+            profit_margin = st.slider("Kâr Marjı (%)", min_value=0, max_value=100, value=30)
+
+        cost_machining = ((t_dik / 60) * r_dik) + ((t_torna / 60) * r_torna) + ((t_tel / 60) * r_tel) + ((t_uni / 60) * r_uni)
+        total_base_cost = cost_machining + mat_cost_input + fason_ht + fason_coat
+        final_price = total_base_cost * (1 + (profit_margin / 100))
+
+        st.divider()
+        m1, m2, m3 = st.columns(3)
+        m1.metric("İşleme İşçilik Maliyeti", f"{cost_machining:.2f} ₺")
+        m2.metric("Toplam İmalat Maliyeti", f"{total_base_cost:.2f} ₺")
+        m3.metric("Önerilen Teklif Fiyatı", f"{final_price:.2f} ₺", delta=f"%{profit_margin} Kâr")
 
 # ---------------------------------------------------------
 # 7. ATÖLYE SOHBETİ
 # ---------------------------------------------------------
 elif menu == "💬 Atölye Sohbeti":
-    st.markdown("## 💬 Atölye İçi Dijital Mesajlaşma & Not Panosu")
-    st.caption("Atölye ekibi, mühendisler ve ustalar arası anlık haberleşme panosu.")
-    
-    col_user, col_msg = st.columns([1, 3])
-    
-    with col_user:
-        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-        st.subheader("👤 Kullanıcı Profili")
-        user_name = st.text_input("Adınız / Unvanınız:", placeholder="Ör: Barış Usta, Ahmet Bey")
-        st.caption("Mesaj göndermek için adınızı giriniz.")
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("## 💬 Atölye İçi Anlık Mesajlaşma")
+    st.caption("Vardiyalar arası notlar, tezgah durum bildirimleri ve atölye iletişimi.")
 
-    with col_msg:
-        st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-        st.subheader("✍️ Yeni Mesaj Yaz")
-        msg_text = st.text_area("Mesajınız:", placeholder="Ör: Philsa imalatı bitti, ısıl işleme gönderildi.", height=90)
-        
-        if st.button("💬 Mesajı Gönder", type="primary"):
-            if user_name and msg_text:
-                now_s = datetime.now().strftime("%d.%m.%Y %H:%M")
-                conn = get_db_connection()
-                conn.execute("INSERT INTO chat_messages (user_name, message, created_at) VALUES (?, ?, ?)", (user_name.strip(), msg_text.strip(), now_s))
-                conn.commit()
-                conn.close()
-                st.toast("Mesajınız panoya gönderildi!", icon="💬")
-                st.rerun()
-            else:
-                st.error("Lütfen hem adınızı hem de mesajınızı giriniz.")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.divider()
-    st.subheader("📜 Geçmiş Mesajlar & Pano")
-    
     conn = get_db_connection()
-    df_chat = pd.read_sql_query("SELECT * FROM chat_messages ORDER BY id DESC", conn)
+    df_chat = pd.read_sql_query("SELECT * FROM chat_messages ORDER BY id DESC LIMIT 50", conn)
     conn.close()
 
+    with st.form("chat_form", clear_on_submit=True):
+        col_u, col_m, col_b = st.columns([1.5, 4, 1])
+        with col_u:
+            user_n = st.text_input("Adınız / Vardiya", placeholder="Ör: Ahmet Usta")
+        with col_m:
+            msg_t = st.text_input("Mesajınız", placeholder="Ör: Dik 2 tezgahının takımı değiştirildi.")
+        with col_b:
+            st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+            sent = st.form_submit_button("Gönder 💬", type="primary")
+
+        if sent and user_n and msg_t:
+            now_c = datetime.now().strftime("%d.%m.%Y %H:%M")
+            conn = get_db_connection()
+            conn.execute("INSERT INTO chat_messages (user_name, message, created_at) VALUES (?, ?, ?)", (user_n.strip(), msg_t.strip(), now_c))
+            conn.commit()
+            conn.close()
+            st.rerun()
+
+    st.subheader("📜 Son Mesajlar")
     if not df_chat.empty:
         for _, r in df_chat.iterrows():
-            msg_id = int(r['id'])
-            
-            st.markdown("<div class='custom-card' style='border-left: 5px solid #2563eb;'>", unsafe_allow_html=True)
-            
-            c_m_main, c_m_act = st.columns([4, 1])
-            
-            with c_m_main:
-                st.markdown(f"**👤 {r['user_name']}** &nbsp;&nbsp; `<small style='color:#64748b;'>🕒 {r['created_at']}</small>`", unsafe_allow_html=True)
-                st.write(r['message'])
-
-            with c_m_act:
-                btn_e, btn_d = st.columns(2)
-                with btn_e:
-                    if st.button("✏️", key=f"c_edit_btn_{msg_id}", help="Mesajı Düzenle"):
-                        st.session_state[f"editing_msg_{msg_id}"] = True
-                with btn_d:
-                    if st.button("🗑️", key=f"c_del_btn_{msg_id}", help="Mesajı Sil"):
-                        conn = get_db_connection()
-                        conn.execute("DELETE FROM chat_messages WHERE id = ?", (msg_id,))
-                        conn.commit()
-                        conn.close()
-                        st.toast("Mesaj silindi!", icon="🗑️")
-                        st.rerun()
-
-            if st.session_state.get(f"editing_msg_{msg_id}", False):
-                with st.form(f"form_edit_msg_{msg_id}"):
-                    new_u = st.text_input("Kullanıcı Adı:", value=r['user_name'])
-                    new_m = st.text_area("Mesaj Metni:", value=r['message'])
-                    
-                    ce1, ce2 = st.columns(2)
-                    with ce1:
-                        if st.form_submit_button("💾 Güncelle", type="primary"):
-                            conn = get_db_connection()
-                            conn.execute("UPDATE chat_messages SET user_name = ?, message = ? WHERE id = ?", (new_u.strip(), new_m.strip(), msg_id))
-                            conn.commit()
-                            conn.close()
-                            st.session_state[f"editing_msg_{msg_id}"] = False
-                            st.toast("Mesaj güncellendi!", icon="✅")
-                            st.rerun()
-                    with ce2:
-                        if st.form_submit_button("❌ İptal"):
-                            st.session_state[f"editing_msg_{msg_id}"] = False
-                            st.rerun()
-
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f"**👤 {r['user_name']}** _({r['created_at']})_")
+            st.info(f"{r['message']}")
     else:
-        st.info("Henüz sohbet panosunda mesaj bulunmuyor. İlk mesajı siz gönderebilirsiniz!")
+        st.caption("Henüz sohbet mesajı bulunmuyor.")
