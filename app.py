@@ -1083,11 +1083,11 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
             fason_coat = st.number_input("KAPLAMA/SU JETİ MALİYETİ (₺)", min_value=0.0, value=0.0, key="cost_fason_coat")
         
         with c_fason2:
-            mat_cost_input = st.number_input("Hammadde Maliyeti (₺)", min_value=0.0, value=float(total_mat_cost), key="cost_mat_input", help="Sol tarafta hesaplanan hammadde maliyeti otomatik gelir.")
+            st.metric("Eklenen Hammadde Maliyeti", f"{total_mat_cost:.2f} ₺", help="Sol tarafta hesaplanan hammadde maliyeti doğrudan hesaba katılır.")
             profit_margin = st.slider("Kâr Marjı (%)", min_value=0, max_value=100, value=30, key="cost_profit")
 
         cost_machining = ((t_dik / 60) * r_dik) + ((t_torna / 60) * r_torna) + ((t_tel / 60) * r_tel) + ((t_uni / 60) * r_uni)
-        total_base_cost = cost_machining + mat_cost_input + fason_ht + fason_coat
+        total_base_cost = cost_machining + total_mat_cost + fason_ht + fason_coat
         final_price = total_base_cost * (1 + (profit_margin / 100))
 
         st.markdown("</div>", unsafe_allow_html=True)
