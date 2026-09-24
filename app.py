@@ -144,23 +144,113 @@ st.markdown(
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    /* Elementlerin Dikey İç Boşlukları (Minimuma İndirildi) */
-    div[data-testid="stVerticalBlock"] > div {
-        gap: 0.02rem !important;
+    /* =========================================================
+       İŞ PLANI - ULTRA KOMPAKT SATIR DÜZENİ
+       Streamlit'in varsayılan dikey boşluklarını kaldırır.
+       ========================================================= */
+
+    /* Dikey bloklar arasındaki varsayılan boşluğu sıfırla */
+    div[data-testid="stVerticalBlock"] {
+        gap: 0rem !important;
+        row-gap: 0rem !important;
     }
-    
-    /* Input ve Select Elemanları İç Boşluk ve Margin Daraltma */
-    .job-row-card .stTextInput, 
-    .job-row-card .stSelectbox, 
-    .job-row-card .stNumberInput {
+
+    div[data-testid="stVerticalBlock"] > div {
+        margin-top: 0px !important;
         margin-bottom: 0px !important;
+        padding-top: 0px !important;
         padding-bottom: 0px !important;
     }
-    
-    .job-row-card div[data-baseweb="input"], 
-    .job-row-card div[data-baseweb="select"] {
+
+    /* Satırdaki kolonlar arası boşluğu minimuma indir */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0.15rem !important;
+        margin-top: 0px !important;
+        margin-bottom: 0px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+    }
+
+    /* Text input / selectbox / number input dış kutularındaki
+       Streamlit'in varsayılan alt boşluğunu kaldır */
+    div[data-testid="stTextInput"],
+    div[data-testid="stSelectbox"],
+    div[data-testid="stNumberInput"] {
+        margin: 0px !important;
+        padding: 0px !important;
         min-height: 28px !important;
-        font-size: 0.85rem !important;
+        height: 28px !important;
+    }
+
+    /* Widget içindeki ekstra dikey boşlukları kaldır */
+    div[data-testid="stTextInput"] > div,
+    div[data-testid="stSelectbox"] > div,
+    div[data-testid="stNumberInput"] > div {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+
+    /* Input ve Select kontrolünün kendisi */
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] {
+        min-height: 28px !important;
+        height: 28px !important;
+        font-size: 0.82rem !important;
+        margin: 0px !important;
+    }
+
+    div[data-baseweb="input"] input {
+        height: 26px !important;
+        min-height: 26px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        font-size: 0.82rem !important;
+    }
+
+    div[data-baseweb="select"] > div {
+        min-height: 28px !important;
+        height: 28px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+    }
+
+    /* Label alanı collapsed olsa bile yer bırakmasını engelle */
+    div[data-testid="stWidgetLabel"] {
+        margin: 0px !important;
+        padding: 0px !important;
+        min-height: 0px !important;
+        height: 0px !important;
+    }
+
+    div[data-testid="stWidgetLabel"] > div {
+        margin: 0px !important;
+        padding: 0px !important;
+    }
+
+    /* İş satırı işaretleyicisi ekstra yükseklik oluşturmasın */
+    .job-row-card {
+        padding: 0px !important;
+        margin: 0px !important;
+        min-height: 0px !important;
+        height: 0px !important;
+        border: 0px !important;
+        background: transparent !important;
+    }
+
+    /* Satır içindeki butonlar da kompakt */
+    div[data-testid="stButton"] button,
+    div[data-testid="stDownloadButton"] button {
+        min-height: 28px !important;
+        height: 28px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+        margin-top: 0px !important;
+        margin-bottom: 0px !important;
+    }
+
+    /* İş planı satırları arasında oluşabilecek son boşluk */
+    div[data-testid="stHorizontalBlock"] + div[data-testid="stHorizontalBlock"] {
+        margin-top: 0px !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
