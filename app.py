@@ -17,7 +17,7 @@ def get_now():
 
 
 # ---------------------------------------------------------
-# SAYFA YAPILANDIRMASI & ÖZEL MODERN CSS
+# SAYFA YAPILANDIRMASI & ÖZEL MODERN CSS REVİZYONU
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Eşme Makina MES - Üretim & Fason Yönetimi",
@@ -32,33 +32,32 @@ os.makedirs("uploads", exist_ok=True)
 st.markdown(
     """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
     
     html, body, [class*="css"]  {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
     
     .main .block-container {
-        padding-top: 0.8rem !important;
-        padding-bottom: 1rem !important;
-        max-width: 99% !important;
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+        max-width: 98% !important;
     }
 
-    /* Streamlit Üst Header Beyazlığını Kaldırma & Saydamlaştırma */
+    /* Streamlit Üst Header Saydamlaştırma */
     header[data-testid="stHeader"] {
-        background-color: transparent !important;
         background: transparent !important;
     }
     
     [data-testid="stSidebarHeader"] {
-        background-color: transparent !important;
         background: transparent !important;
-        padding-top: 0rem !important;
+        padding-top: 0.5rem !important;
     }
 
-    /* Sol Menü (Sidebar) Koyu Tema ve Arka Plan Düzeltmesi */
+    /* Sol Menü (Sidebar) Premium Koyu Tema & Gradyan */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+        background: linear-gradient(180deg, #090d16 0%, #111827 100%) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
     
     [data-testid="stSidebar"] > div:first-child {
@@ -66,104 +65,113 @@ st.markdown(
     }
 
     [data-testid="stSidebarContent"] {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+        background: transparent !important;
     }
 
     [data-testid="stSidebar"] * {
-        color: #f8fafc !important;
+        color: #f1f5f9 !important;
     }
 
     /* Sidebar İçindeki Expander / Açılır Kutular */
     [data-testid="stSidebar"] details {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 8px !important;
-        color: #f8fafc !important;
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+        color: #f1f5f9 !important;
+        padding: 2px;
     }
 
     [data-testid="stSidebar"] summary {
-        color: #f8fafc !important;
+        color: #f1f5f9 !important;
+        font-weight: 600;
     }
 
     /* Modern Kart Yapısı */
     .custom-card {
-        background-color: #ffffff;
-        border-radius: 8px;
-        padding: 10px 14px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
         border: 1px solid #e2e8f0;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+    }
+    .custom-card:hover {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
     }
     
     /* Firma Başlık Bandı */
     .firm-header-band {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: #ffffff;
-        padding: 6px 14px;
-        border-radius: 6px;
+        padding: 10px 18px;
+        border-radius: 8px;
         font-weight: 700;
-        font-size: 0.95rem;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        font-size: 1rem;
+        letter-spacing: 0.4px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 10px;
-        margin-bottom: 4px;
+        margin-top: 16px;
+        margin-bottom: 8px;
+        border-left: 4px solid #3b82f6;
     }
     
     .count-badge {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         color: #ffffff;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 0.78rem;
-        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
     }
 
-    /* Satır İçi İş Kartı (Sıkılaştırılmış Boşluklar) */
+    /* Satır İçi İş Kartı */
     .job-row-card {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 2px 6px;
-        margin-bottom: 1px;
+        border-radius: 8px;
+        padding: 6px 8px;
+        margin-bottom: 4px;
         transition: all 0.2s ease;
     }
     .job-row-card:hover {
-        border-color: #cbd5e1;
+        border-color: #94a3b8;
         background-color: #ffffff;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
-    /* Elementlerin Dikey İç Marjinlerini Küçültme */
+    /* Elementlerin Dikey İç Boşlukları */
     div[data-testid="stVerticalBlock"] > div {
-        gap: 0.05rem !important;
+        gap: 0.1rem !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
-        font-weight: 700 !important;
-        color: #94a3b8 !important;
-        font-size: 0.85rem !important;
+        font-weight: 800 !important;
+        color: #64748b !important;
+        font-size: 0.78rem !important;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 4px;
+        letter-spacing: 1.2px;
+        margin-bottom: 8px;
     }
 
-    /* Radio Seçeneklerini Buton/Kart Şekline Getirme */
+    /* Radio Seçeneklerini Şık Buton/Kart Tasarımına Dönüştürme */
     [data-testid="stSidebar"] .stRadio > div {
-        gap: 4px;
+        gap: 6px;
     }
 
     [data-testid="stSidebar"] .stRadio label {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px !important;
-        padding: 6px 10px !important;
-        color: #e2e8f0 !important;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        color: #cbd5e1 !important;
         font-weight: 500 !important;
-        font-size: 0.88rem !important;
-        transition: all 0.25s ease-in-out !important;
+        font-size: 0.9rem !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -171,26 +179,28 @@ st.markdown(
     }
 
     [data-testid="stSidebar"] .stRadio label:hover {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border-color: rgba(255, 255, 255, 0.2) !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
         transform: translateX(4px);
     }
 
     [data-testid="stSidebar"] .stRadio div[data-checked="true"] label {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
         border-color: #60a5fa !important;
         color: #ffffff !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
     }
 
     [data-testid="stMetricValue"] {
-        font-size: 1.4rem !important;
-        font-weight: 700 !important;
+        font-size: 1.5rem !important;
+        font-weight: 800 !important;
         color: #0f172a;
+        letter-spacing: -0.5px;
     }
     
-    /* TÜM BUTON, İNDİRME VE POPOVER İKONLARININ GÖRÜNÜMÜNÜ EŞİTLEME */
+    /* Buton, İndirme ve Popover Görünüm İyileştirmeleri */
     .stButton > button:not([kind="primary"]), 
     div[data-testid="stDownloadButton"] > button:not([kind="primary"]),
     div[data-testid="stDownloadButton"] > a,
@@ -198,10 +208,10 @@ st.markdown(
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         color: #1e293b !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
-        padding: 2px 8px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        padding: 4px 10px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
         transition: all 0.2s ease-in-out !important;
     }
 
@@ -209,10 +219,11 @@ st.markdown(
     div[data-testid="stDownloadButton"] > button:not([kind="primary"]):hover,
     div[data-testid="stDownloadButton"] > a:hover,
     div[data-testid="stPopover"] > button:hover {
-        background-color: #f1f5f9 !important;
-        border-color: #94a3b8 !important;
-        color: #0f172a !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.08) !important;
+        background-color: #f8fafc !important;
+        border-color: #3b82f6 !important;
+        color: #1d4ed8 !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+        transform: translateY(-1px);
     }
 </style>
 """,
@@ -384,7 +395,6 @@ def restore_db_from_excel(uploaded_file):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 1. İş Emri / Arşiv Verileri
     dfs_wo = []
     if "Aktif İş Planı" in xls.sheet_names:
       dfs_wo.append(pd.read_excel(xls, "Aktif İş Planı"))
@@ -396,19 +406,16 @@ def restore_db_from_excel(uploaded_file):
       cursor.execute("DELETE FROM work_orders")
       df_all_wo.to_sql("work_orders", conn, if_exists="append", index=False)
 
-    # 2. Isıl İşlem Verileri
     if "Isıl İşlem Takip" in xls.sheet_names:
       df_ht = pd.read_excel(xls, "Isıl İşlem Takip")
       cursor.execute("DELETE FROM heat_treatment")
       df_ht.to_sql("heat_treatment", conn, if_exists="append", index=False)
 
-    # 3. Su Jeti Verileri
     if "Su Jeti (WJG) Takip" in xls.sheet_names:
       df_wjg = pd.read_excel(xls, "Su Jeti (WJG) Takip")
       cursor.execute("DELETE FROM wjg_waterjet")
       df_wjg.to_sql("wjg_waterjet", conn, if_exists="append", index=False)
 
-    # 4. Atölye Sohbet Geçmişi
     if "Atölye Sohbeti" in xls.sheet_names:
       df_chat = pd.read_excel(xls, "Atölye Sohbeti")
       cursor.execute("DELETE FROM chat_messages")
@@ -421,7 +428,6 @@ def restore_db_from_excel(uploaded_file):
     return False, f"Geri yükleme sırasında hata oluştu: {str(e)}"
 
 
-# HELPER FONKSİYONLAR (ÇOKLU DOSYA DESTEĞİ İÇİN)
 def parse_drawing_files(path_str, name_str):
   if not path_str:
     return [], []
@@ -449,7 +455,6 @@ def create_zip_archive(paths, names):
   return zip_buffer.getvalue()
 
 
-# SABİT LİSTELER (YENİ DURUM SEÇENEKLERİ EKLENDİ)
 STATUS_OPTIONS = [
     "MALZEME SİPARİŞİ VERİLDİ",
     "DİK İŞLEME SIRADA",
@@ -725,7 +730,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
           unsafe_allow_html=True,
       )
 
-      # Sütun Genişlikleri (Tedarikçi Firma Dahil Edildi)
       col_widths = [1.4, 0.9, 0.9, 0.6, 0.4, 0.9, 1.2, 0.9, 0.7, 1.3, 0.8]
 
       h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(col_widths)
