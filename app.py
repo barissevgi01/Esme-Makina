@@ -1030,26 +1030,26 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
         weight_kg = 0.0
 
         if shape == "Dolu Mil (Silindir)":
-            dia = st.number_input("Çap (mm)", min_value=1.0, value=50.0, key="cost_dia")
-            length = st.number_input("Boy (mm)", min_value=1.0, value=100.0, key="cost_len")
+            dia = st.number_input("Çap (mm)", min_value=1.0, value=50.0, step=1.0, key="cost_dia")
+            length = st.number_input("Boy (mm)", min_value=1.0, value=100.0, step=1.0, key="cost_len")
             vol_cm3 = (math.pi * ((dia / 2) ** 2) * length) / 1000
             weight_kg = (vol_cm3 * density) / 1000
 
         elif shape == "Lama / Blok (L x W x H)":
-            l = st.number_input("Uzunluk - L (mm)", min_value=1.0, value=100.0, key="cost_l")
-            w = st.number_input("Genişlik - W (mm)", min_value=1.0, value=50.0, key="cost_w")
-            h = st.number_input("Yükseklik/Kalınlık - H (mm)", min_value=1.0, value=20.0, key="cost_h")
+            l = st.number_input("Uzunluk - L (mm)", min_value=1.0, value=100.0, step=1.0, key="cost_l")
+            w = st.number_input("Genişlik - W (mm)", min_value=1.0, value=50.0, step=1.0, key="cost_w")
+            h = st.number_input("Yükseklik/Kalınlık - H (mm)", min_value=1.0, value=20.0, step=1.0, key="cost_h")
             vol_cm3 = (l * w * h) / 1000
             weight_kg = (vol_cm3 * density) / 1000
 
         elif shape == "Boru (Dış D - İç D - Boy)":
-            out_d = st.number_input("Dış Çap (mm)", min_value=1.0, value=60.0, key="cost_out_d")
-            in_d = st.number_input("İç Çap (mm)", min_value=0.0, value=40.0, key="cost_in_d")
-            l = st.number_input("Boy (mm)", min_value=1.0, value=100.0, key="cost_pipe_l")
+            out_d = st.number_input("Dış Çap (mm)", min_value=1.0, value=60.0, step=1.0, key="cost_out_d")
+            in_d = st.number_input("İç Çap (mm)", min_value=0.0, value=40.0, step=1.0, key="cost_in_d")
+            l = st.number_input("Boy (mm)", min_value=1.0, value=100.0, step=1.0, key="cost_pipe_l")
             vol_cm3 = (math.pi * (((out_d / 2) ** 2) - ((in_d / 2) ** 2)) * l) / 1000
             weight_kg = (vol_cm3 * density) / 1000 if out_d > in_d else 0.0
 
-        unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺)", min_value=0.0, value=120.0, key="cost_unit_price")
+        unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺)", min_value=0.0, value=120.0, step=1.0, key="cost_unit_price")
         total_mat_cost = weight_kg * unit_price_kg
 
         st.divider()
@@ -1063,24 +1063,24 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
         c_time, c_rate = st.columns(2)
         with c_time:
             st.markdown("**⏱️ İşleme Süreleri (Dk)**")
-            t_dik = st.number_input("CNC Dik İsl. (Dk)", min_value=0.0, value=30.0, key="cost_t_dik")
-            t_torna = st.number_input("CNC Torna (Dk)", min_value=0.0, value=15.0, key="cost_t_torna")
-            t_tel = st.number_input("Tel Erezyon (Dk)", min_value=0.0, value=45.0, key="cost_t_tel")
-            t_uni = st.number_input("Üniversal (Dk)", min_value=0.0, value=10.0, key="cost_t_uni")
+            t_dik = st.number_input("CNC Dik İsl. (Dk)", min_value=0.0, value=30.0, step=1.0, key="cost_t_dik")
+            t_torna = st.number_input("CNC Torna (Dk)", min_value=0.0, value=15.0, step=1.0, key="cost_t_torna")
+            t_tel = st.number_input("Tel Erezyon (Dk)", min_value=0.0, value=45.0, step=1.0, key="cost_t_tel")
+            t_uni = st.number_input("Üniversal (Dk)", min_value=0.0, value=10.0, step=1.0, key="cost_t_uni")
 
         with c_rate:
             st.markdown("**💳 Saat Ücretleri (₺/Saat)**")
-            r_dik = st.number_input("Dik İşleme Ücreti", min_value=0.0, value=1200.0, key="cost_r_dik")
-            r_torna = st.number_input("Torna Saat Ücreti", min_value=0.0, value=1000.0, key="cost_r_torna")
-            r_tel = st.number_input("Tel Erezyon Ücreti", min_value=0.0, value=800.0, key="cost_r_tel")
-            r_uni = st.number_input("Üniversal Ücreti", min_value=0.0, value=600.0, key="cost_r_uni")
+            r_dik = st.number_input("Dik İşleme Ücreti", min_value=0.0, value=1200.0, step=1.0, key="cost_r_dik")
+            r_torna = st.number_input("Torna Saat Ücreti", min_value=0.0, value=1000.0, step=1.0, key="cost_r_torna")
+            r_tel = st.number_input("Tel Erezyon Ücreti", min_value=0.0, value=800.0, step=1.0, key="cost_r_tel")
+            r_uni = st.number_input("Üniversal Ücreti", min_value=0.0, value=600.0, step=1.0, key="cost_r_uni")
 
         st.markdown("---")
         c_fason1, c_fason2 = st.columns(2)
         
         with c_fason1:
-            fason_ht = st.number_input("ISIL İŞLEM MALİYETİ (₺)", min_value=0.0, value=150.0, key="cost_fason_ht")
-            fason_coat = st.number_input("KAPLAMA/SU JETİ MALİYETİ (₺)", min_value=0.0, value=0.0, key="cost_fason_coat")
+            fason_ht = st.number_input("ISIL İŞLEM MALİYETİ (₺)", min_value=0.0, value=150.0, step=1.0, key="cost_fason_ht")
+            fason_coat = st.number_input("KAPLAMA/SU JETİ MALİYETİ (₺)", min_value=0.0, value=0.0, step=1.0, key="cost_fason_coat")
         
         with c_fason2:
             st.metric("Eklenen Hammadde Maliyeti", f"{total_mat_cost:.2f} ₺", help="Sol tarafta hesaplanan hammadde maliyeti doğrudan hesaba katılır.")
