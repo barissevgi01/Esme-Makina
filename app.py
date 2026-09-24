@@ -287,30 +287,6 @@ def init_db():
 
 init_db()
 
-# ---------------------------------------------------------
-# EXCEL YEDEKLEME FONKSİYONU
-# ---------------------------------------------------------
-def export_all_to_excel():
-    output = io.BytesIO()
-    conn = get_db_connection()
-    
-    df_active = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 0 ORDER BY id ASC", conn)
-    df_archived = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 1 ORDER BY id DESC", conn)
-    df_ht = pd.read_sql_query("SELECT * FROM heat_treatment ORDER BY id DESC", conn)
-    df_wjg = pd.read_sql_query("SELECT * FROM wjg_waterjet ORDER BY id DESC", conn)
-    df_chat = pd.read_sql_query("SELECT * FROM chat_messages ORDER BY id DESC", conn)
-    
-    conn.close()
-    
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_active.to_excel(writer, sheet_name='Aktif İş Planı', index=False)
-        df_archived.to_excel(writer, sheet_name='İmalat Hafızası (Arşiv)', index=False)
-        df_ht.to_excel(writer, sheet_name='Isıl İşlem Takip', index=False)
-        df_wjg.to_excel(writer, sheet_name='Su Jeti (WJG) Takip', index=False)
-        df_chat.to_excel(writer, sheet_name='Atölye Sohbeti', index=False)
-        
-    return output.getvalue()
-
 # HELPER FONKSİYONLAR (ÇOKLU DOSYA DESTEĞİ İÇİN)
 def parse_drawing_files(path_str, name_str):
     if not path_str:
@@ -419,7 +395,7 @@ def parse_date(date_str):
     return None
 
 # ---------------------------------------------------------
-# SOL MENÜ & LOGO & YEDEKLEME BUTONU
+# SOL MENÜ & LOGO
 # ---------------------------------------------------------
 if os.path.exists("LOGO VE İSİM.JPG"):
     st.sidebar.image("LOGO VE İSİM.JPG", use_container_width=True)
@@ -437,21 +413,6 @@ menu = st.sidebar.radio(
         "💰 Akıllı Maliyet Hesabı",
         "💬 Atölye Sohbeti"
     ]
-)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 💾 Veri Yedekleme")
-
-excel_backup = export_all_to_excel()
-backup_filename = f"Esme_Makina_Yedek_{get_now().strftime('%Y%m%d_%H%M')}.xlsx"
-
-st.sidebar.download_button(
-    label="📊 Tüm Verileri Excel'e Yedekle",
-    data=excel_backup,
-    file_name=backup_filename,
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    use_container_width=True,
-    help="Tüm aktif işler, arşiv, ısıl işlem, su jeti ve sohbet geçmişini Excel dosyası olarak indirir."
 )
 
 st.sidebar.caption("Eşme Makina MES v6.5 • 2026")
@@ -974,7 +935,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 c1, c2, c3 = st.columns(3)
                 with c1:
                     st.write(f"**Malzeme:** {r['material']}")
-                    st.write(f"**Ölçu:** {r['dimensions']}")
+                    st.write(f"**Ölçü:** {r['dimensions']}")
                     st.write(f"**Tedarikçi:** {r['supplier']}")
                 with c2:
                     st.write(f"**Isıl İşlem:** {r['heat_treatment']}")
@@ -990,15 +951,15 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 with st.form(key=f"edit_arch_form_{arch_id}"):
                     ac1, ac2, ac3, ac4, ac5 = st.columns(5)
                     with ac1:
-                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), step=1.0, key=f"arch_dik_{arch_id}")
+                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), key=f"arch_dik_{arch_id}")
                     with ac2:
-                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), step=1.0, key=f"arch_torna_{arch_id}")
+                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), key=f"arch_torna_{arch_id}")
                     with ac3:
-                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), step=1.0, key=f"arch_tel_{arch_id}")
+                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), key=f"arch_tel_{arch_id}")
                     with ac4:
-                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), step=1.0, key=f"arch_uni_{arch_id}")
+                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), key=f"arch_uni_{arch_id}")
                     with ac5:
-                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), step=1.0, key=f"arch_price_{arch_id}")
+                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), key=f"arch_price_{arch_id}")
                     
                     u_notes = st.text_area("İş / İmalat Notları", value=str(r['notes'] or ""), key=f"arch_notes_{arch_id}")
                     
