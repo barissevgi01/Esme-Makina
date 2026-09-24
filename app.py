@@ -287,6 +287,72 @@ def init_db():
 
 init_db()
 
+# ---------------------------------------------------------
+# EXCEL YEDEKLEME VE GERİ YÜKLEME FONKSİYONLARI
+# ---------------------------------------------------------
+def export_all_to_excel():
+    output = io.BytesIO()
+    conn = get_db_connection()
+    
+    df_active = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 0 ORDER BY id ASC", conn)
+    df_archived = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 1 ORDER BY id DESC", conn)
+    df_ht = pd.read_sql_query("SELECT * FROM heat_treatment ORDER BY id DESC", conn)
+    df_wjg = pd.read_sql_query("SELECT * FROM wjg_waterjet ORDER BY id DESC", conn)
+    df_chat = pd.read_sql_query("SELECT * FROM chat_messages ORDER BY id DESC", conn)
+    
+    conn.close()
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_active.to_excel(writer, sheet_name='Aktif İş Planı', index=False)
+        df_archived.to_excel(writer, sheet_name='İmalat Hafızası (Arşiv)', index=False)
+        df_ht.to_excel(writer, sheet_name='Isıl İşlem Takip', index=False)
+        df_wjg.to_excel(writer, sheet_name='Su Jeti (WJG) Takip', index=False)
+        df_chat.to_excel(writer, sheet_name='Atölye Sohbeti', index=False)
+        
+    return output.getvalue()
+
+def restore_db_from_excel(uploaded_file):
+    try:
+        xls = pd.ExcelFile(uploaded_file)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. İş Emri / Arşiv Verileri
+        dfs_wo = []
+        if 'Aktif İş Planı' in xls.sheet_names:
+            dfs_wo.append(pd.read_excel(xls, 'Aktif İş Planı'))
+        if 'İmalat Hafızası (Arşiv)' in xls.sheet_names:
+            dfs_wo.append(pd.read_excel(xls, 'İmalat Hafızası (Arşiv)'))
+        
+        if dfs_wo:
+            df_all_wo = pd.concat(dfs_wo, ignore_index=True)
+            cursor.execute("DELETE FROM work_orders")
+            df_all_wo.to_sql('work_orders', conn, if_exists='append', index=False)
+
+        # 2. Isıl İşlem Verileri
+        if 'Isıl İşlem Takip' in xls.sheet_names:
+            df_ht = pd.read_excel(xls, 'Isıl İşlem Takip')
+            cursor.execute("DELETE FROM heat_treatment")
+            df_ht.to_sql('heat_treatment', conn, if_exists='append', index=False)
+
+        # 3. Su Jeti Verileri
+        if 'Su Jeti (WJG) Takip' in xls.sheet_names:
+            df_wjg = pd.read_excel(xls, 'Su Jeti (WJG) Takip')
+            cursor.execute("DELETE FROM wjg_waterjet")
+            df_wjg.to_sql('wjg_waterjet', conn, if_exists='append', index=False)
+
+        # 4. Atölye Sohbet Geçmişi
+        if 'Atölye Sohbeti' in xls.sheet_names:
+            df_chat = pd.read_excel(xls, 'Atölye Sohbeti')
+            cursor.execute("DELETE FROM chat_messages")
+            df_chat.to_sql('chat_messages', conn, if_exists='append', index=False)
+
+        conn.commit()
+        conn.close()
+        return True, "Yedek verileri başarıyla sisteme geri yüklendi!"
+    except Exception as e:
+        return False, f"Geri yükleme sırasında hata oluştu: {str(e)}"
+
 # HELPER FONKSİYONLAR (ÇOKLU DOSYA DESTEĞİ İÇİN)
 def parse_drawing_files(path_str, name_str):
     if not path_str:
@@ -395,7 +461,7 @@ def parse_date(date_str):
     return None
 
 # ---------------------------------------------------------
-# SOL MENÜ & LOGO
+# SOL MENÜ & LOGO & YEDEKLEME & GERİ YÜKLEME
 # ---------------------------------------------------------
 if os.path.exists("LOGO VE İSİM.JPG"):
     st.sidebar.image("LOGO VE İSİM.JPG", use_container_width=True)
@@ -415,7 +481,39 @@ menu = st.sidebar.radio(
     ]
 )
 
-st.sidebar.caption("Eşme Makina MES v6.5 • 2026")
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💾 Veri Yedekleme & Geri Yükleme")
+
+excel_backup = export_all_to_excel()
+backup_filename = f"Esme_Makina_Yedek_{get_now().strftime('%Y%m%d_%H%M')}.xlsx"
+
+st.sidebar.download_button(
+    label="📊 Tüm Verileri Excel'e Yedekle",
+    data=excel_backup,
+    file_name=backup_filename,
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    use_container_width=True,
+    help="Tüm aktif işler, arşiv, ısıl işlem, su jeti ve sohbet geçmişini Excel dosyası olarak indirir."
+)
+
+st.sidebar.markdown("---")
+with st.sidebar.expander("📥 Excel Yedeğinden Geri Yükle", expanded=False):
+    uploaded_restore_file = st.file_uploader(
+        "Geri yüklenecek Excel yedeğini seçin (.xlsx)", 
+        type=["xlsx"], 
+        key="restore_file_uploader"
+    )
+    if uploaded_restore_file is not None:
+        if st.button("⚠️ Yedeği Programa Yükle", type="primary", use_container_width=True):
+            success, msg = restore_db_from_excel(uploaded_restore_file)
+            if success:
+                st.success(msg)
+                st.toast(msg, icon="🟢")
+                st.rerun()
+            else:
+                st.error(msg)
+
+st.sidebar.caption("Eşme Makina MES v6.6 • 2026")
 
 # ---------------------------------------------------------
 # ÜST LOGO & BAŞLIK ALANI (ANA SAYFA)
@@ -517,7 +615,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 with c2:
                     new_mat = st.text_input("Malzeme", value=row['material'], max_chars=15, key=f"mat_{j_id}", label_visibility="collapsed", placeholder="Malzeme")
                 with c3:
-                    new_dim = st.text_input("Ölçü", value=row['dimensions'], max_chars=15, key=f"dim_{j_id}", label_visibility="collapsed", placeholder="Ölçü")
+                    new_dim = st.text_input("Ölçu", value=row['dimensions'], max_chars=15, key=f"dim_{j_id}", label_visibility="collapsed", placeholder="Ölçü")
                 with c4:
                     new_qty = st.number_input("Adet", value=int(row['quantity']), min_value=1, key=f"qty_{j_id}", label_visibility="collapsed")
                 with c5:
@@ -820,7 +918,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 wjg_part = st.text_input("Parça Tanımı *", placeholder="Ör: GAGALI SLOT BIÇAĞI")
             with col2:
                 wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
-                wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
+                wjg_dims = st.text_input("Ölçu (mm)", placeholder="Ör: 231x48x10")
                 wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
             with col3:
                 wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
@@ -951,15 +1049,15 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 with st.form(key=f"edit_arch_form_{arch_id}"):
                     ac1, ac2, ac3, ac4, ac5 = st.columns(5)
                     with ac1:
-                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), key=f"arch_dik_{arch_id}")
+                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), step=1.0, key=f"arch_dik_{arch_id}")
                     with ac2:
-                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), key=f"arch_torna_{arch_id}")
+                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), step=1.0, key=f"arch_torna_{arch_id}")
                     with ac3:
-                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), key=f"arch_tel_{arch_id}")
+                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), step=1.0, key=f"arch_tel_{arch_id}")
                     with ac4:
-                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), key=f"arch_uni_{arch_id}")
+                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), step=1.0, key=f"arch_uni_{arch_id}")
                     with ac5:
-                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), key=f"arch_price_{arch_id}")
+                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), step=1.0, key=f"arch_price_{arch_id}")
                     
                     u_notes = st.text_area("İş / İmalat Notları", value=str(r['notes'] or ""), key=f"arch_notes_{arch_id}")
                     
