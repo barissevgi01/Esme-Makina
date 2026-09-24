@@ -6,7 +6,13 @@ import os
 import json
 import io
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# ---------------------------------------------------------
+# SAAT AYARI (UTC+3 TÜRKİYE SAATİ İÇİN YARDIMCI FONKSİYON)
+# ---------------------------------------------------------
+def get_now():
+    return datetime.now() + timedelta(hours=3)
 
 # ---------------------------------------------------------
 # SAYFA YAPILANDIRMASI & ÖZEL MODERN CSS
@@ -452,7 +458,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
 
             submitted = st.form_submit_button("🚀 Siparişi Ekle ve Süreyi Başlat", type="primary")
             if submitted and cust and job:
-                now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
+                now_str = get_now().strftime("%d.%m.%Y %H:%M")
                 conn = get_db_connection()
                 conn.execute('''
                     INSERT INTO work_orders 
@@ -486,8 +492,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 </div>
             """, unsafe_allow_html=True)
 
-            # REVİZE 4: ÖLÇÜ VE ADET GENİŞLİĞİ KÜÇÜLTÜLDÜ, NOT GENİŞLİĞİ ARTIRILDI
-            # Kolon Oranları: [1.5, 0.8, 0.6, 0.4, 0.9, 1.1, 1.0, 0.8, 1.7, 1.0]
             col_widths = [1.5, 0.8, 0.6, 0.4, 0.9, 1.1, 1.0, 0.8, 1.7, 1.0]
             
             h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 = st.columns(col_widths)
@@ -535,7 +539,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     
                     ic1, ic2, ic3 = st.columns(3)
                     
-                    # REVİZE 5: SINIRSIZ DOSYA YÜKLEME
                     with ic1:
                         with st.popover("📤", help="Teknik Resim / Dosyalar Yükle"):
                             up_files = st.file_uploader("Dosyaları Seçin", type=None, accept_multiple_files=True, key=f"up_{j_id}", label_visibility="collapsed")
@@ -558,7 +561,6 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                                 st.toast(f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢")
                                 st.rerun()
 
-                    # REVİZE 5: YÜKLENEN DOSYALARI TEK TIKLA ZIP VEYA DİREKT İNDİR
                     with ic2:
                         if has_files:
                             valid_paths = [p for p in paths if os.path.exists(p)]
@@ -591,7 +593,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     
                     conn = get_db_connection()
                     if new_st == "HAZIR":
-                        end_now_dt = datetime.now()
+                        end_now_dt = get_now()
                         end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
                         duration_calc_str = "Belirtilmedi"
                         if row['start_time']:
@@ -648,7 +650,6 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         for _, r in df_active.iterrows():
             m_name = r['machine_name']
             if m_name and m_name != "YOK / ATANMADI":
-                # REVİZE 6: İŞİN TEZGAHA HANGİ TARİH VE SAATTE BAĞLANDIĞI BİLGİSİ
                 conn_time = r['start_time'] or r['created_at'] or "Tarih Belirtilmedi"
                 assigned_jobs[m_name] = {
                     "text": f"🏢 **{r['customer']}** - {r['job_name']}",
@@ -715,7 +716,7 @@ elif menu == "🔥 Isıl İşlem Takip":
         with st.form("add_ht_form", clear_on_submit=True):
             col1, col2, col3 = st.columns(3)
             with col1:
-                ht_date = st.text_input("Tarih *", value=datetime.now().strftime("%d.%m.%Y"))
+                ht_date = st.text_input("Tarih *", value=get_now().strftime("%d.%m.%Y"))
                 ht_supplier = st.selectbox("Isıl İşlem Firması *", HT_SUPPLIERS)
                 ht_customer = st.text_input("Müşteri Firma Adı *", placeholder="Ör: PROFACE, DENTAŞ")
             with col2:
@@ -735,7 +736,7 @@ elif menu == "🔥 Isıl İşlem Takip":
 
             submitted = st.form_submit_button("🔥 Isıl İşlem Kaydını Ekle", type="primary")
             if submitted and ht_customer and ht_prod:
-                now_s = datetime.now().strftime("%d.%m.%Y %H:%M")
+                now_s = get_now().strftime("%d.%m.%Y %H:%M")
                 conn = get_db_connection()
                 conn.execute('''
                     INSERT INTO heat_treatment
@@ -814,12 +815,12 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
         with st.form("add_wjg_form", clear_on_submit=True):
             col1, col2, col3 = st.columns(3)
             with col1:
-                wjg_date = st.text_input("Kesim Tarihi *", value=datetime.now().strftime("%d.%m.%Y"))
+                wjg_date = st.text_input("Kesim Tarihi *", value=get_now().strftime("%d.%m.%Y"))
                 wjg_customer = st.text_input("Firma Adı *", placeholder="Ör: ANKUTSAN, OMKAR")
                 wjg_part = st.text_input("Parça Tanımı *", placeholder="Ör: GAGALI SLOT BIÇAĞI")
             with col2:
                 wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
-                wjg_dims = st.text_input("Ölkü (mm)", placeholder="Ör: 231x48x10")
+                wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
                 wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
             with col3:
                 wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
@@ -830,7 +831,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
 
             submitted_wjg = st.form_submit_button("🌊 Su Jeti Kesim Kaydını Ekle", type="primary")
             if submitted_wjg and wjg_customer and wjg_part:
-                now_s = datetime.now().strftime("%d.%m.%Y %H:%M")
+                now_s = get_now().strftime("%d.%m.%Y %H:%M")
                 conn = get_db_connection()
                 conn.execute('''
                     INSERT INTO wjg_waterjet
@@ -946,7 +947,6 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
 
                 st.markdown("---")
                 
-                # REVİZE 7: İMALAT SÜRELERİ (DİK İŞLEME, CNC TORNA, TEL EREZYON, ÜNİVERSAL TEZGAH), FİYAT VE NOT DÜZENLEME
                 st.markdown("##### ⏱️ İmalat Süreleri, Fiyat & Not Düzenleme")
                 with st.form(key=f"edit_arch_form_{arch_id}"):
                     ac1, ac2, ac3, ac4, ac5 = st.columns(5)
@@ -1049,7 +1049,7 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
             vol_cm3 = (math.pi * (((out_d / 2) ** 2) - ((in_d / 2) ** 2)) * l) / 1000
             weight_kg = (vol_cm3 * density) / 1000 if out_d > in_d else 0.0
 
-        unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺ / Euro)", min_value=0.0, value=120.0, key="cost_unit_price")
+        unit_price_kg = st.number_input("Malzeme KG Birim Fiyatı (₺)", min_value=0.0, value=120.0, key="cost_unit_price")
         total_mat_cost = weight_kg * unit_price_kg
 
         st.divider()
@@ -1078,12 +1078,10 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
         st.markdown("---")
         c_fason1, c_fason2 = st.columns(2)
         
-        # REVİZE 2 VE 3: ETİKET İSİMLERİ DÜZELTİLDİ
         with c_fason1:
             fason_ht = st.number_input("ISIL İŞLEM MALİYETİ (₺)", min_value=0.0, value=150.0, key="cost_fason_ht")
             fason_coat = st.number_input("KAPLAMA/SU JETİ MALİYETİ (₺)", min_value=0.0, value=0.0, key="cost_fason_coat")
         
-        # REVİZE 1: SOL TARAFDAKİ HESAPLANAN HAMMADDE MALİYETİ OTOMATİK OLARAK AKTARILIYOR
         with c_fason2:
             mat_cost_input = st.number_input("Hammadde Maliyeti (₺)", min_value=0.0, value=float(total_mat_cost), key="cost_mat_input", help="Sol tarafta hesaplanan hammadde maliyeti otomatik gelir.")
             profit_margin = st.slider("Kâr Marjı (%)", min_value=0, max_value=100, value=30, key="cost_profit")
@@ -1123,7 +1121,7 @@ elif menu == "💬 Atölye Sohbeti":
             sent = st.form_submit_button("Gönder 💬", type="primary")
 
         if sent and user_n and msg_t:
-            now_c = datetime.now().strftime("%d.%m.%Y %H:%M")
+            now_c = get_now().strftime("%d.%m.%Y %H:%M")
             conn = get_db_connection()
             conn.execute("INSERT INTO chat_messages (user_name, message, created_at) VALUES (?, ?, ?)", (user_n.strip(), msg_t.strip(), now_c))
             conn.commit()
