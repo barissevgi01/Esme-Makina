@@ -865,9 +865,10 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     ),
                 )
             else:
-              st.button(
-                  "🚫", disabled=True, key=f"nodl_{j_id}", help="Yüklü dosya yok"
-              )
+              if st.button("📥", key=f"nodl_{j_id}", help="Yüklü dosya yok"):
+                st.toast(
+                    "Bu iş için yüklü teknik resim/dosya bulunmuyor.", icon="ℹ️"
+                )
 
           with ic3:
             if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
