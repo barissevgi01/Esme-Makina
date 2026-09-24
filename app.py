@@ -39,9 +39,9 @@ st.markdown(
     }
     
     .main .block-container {
-        padding-top: 1.2rem;
-        padding-bottom: 2rem;
-        max-width: 98%;
+        padding-top: 0.8rem !important;
+        padding-bottom: 1rem !important;
+        max-width: 99% !important;
     }
 
     /* Streamlit Üst Header Beyazlığını Kaldırma & Saydamlaştırma */
@@ -85,68 +85,60 @@ st.markdown(
         color: #f8fafc !important;
     }
 
-    /* Üst Logo ve Başlık Alanı */
-    .brand-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: #ffffff;
-        padding: 12px 24px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
-    }
-    
     /* Modern Kart Yapısı */
     .custom-card {
         background-color: #ffffff;
-        border-radius: 12px;
-        padding: 18px 22px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        border-radius: 8px;
+        padding: 10px 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         border: 1px solid #e2e8f0;
-        margin-bottom: 15px;
+        margin-bottom: 8px;
     }
     
     /* Firma Başlık Bandı */
     .firm-header-band {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: #ffffff;
-        padding: 10px 18px;
-        border-radius: 8px;
+        padding: 6px 14px;
+        border-radius: 6px;
         font-weight: 700;
-        font-size: 1.05rem;
+        font-size: 0.95rem;
         letter-spacing: 0.5px;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 18px;
-        margin-bottom: 12px;
+        margin-top: 10px;
+        margin-bottom: 4px;
     }
     
     .count-badge {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: #ffffff;
-        padding: 3px 12px;
-        border-radius: 12px;
-        font-size: 0.82rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.78rem;
         font-weight: 600;
     }
 
-    /* Satır İçi İş Kartı */
+    /* Satır İçi İş Kartı (Sıkılaştırılmış Boşluklar) */
     .job-row-card {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 10px 14px;
-        margin-bottom: 8px;
+        border-radius: 6px;
+        padding: 3px 6px;
+        margin-bottom: 3px;
         transition: all 0.2s ease;
     }
     .job-row-card:hover {
         border-color: #cbd5e1;
         background-color: #ffffff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    /* Elementlerin Dikey İç Marjinlerini Küçültme */
+    div[data-testid="stVerticalBlock"] > div {
+        gap: 0.2rem !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
@@ -155,22 +147,22 @@ st.markdown(
         font-size: 0.85rem !important;
         text-transform: uppercase;
         letter-spacing: 1px;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
 
     /* Radio Seçeneklerini Buton/Kart Şekline Getirme */
     [data-testid="stSidebar"] .stRadio > div {
-        gap: 6px;
+        gap: 4px;
     }
 
     [data-testid="stSidebar"] .stRadio label {
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px !important;
-        padding: 10px 14px !important;
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
         color: #e2e8f0 !important;
         font-weight: 500 !important;
-        font-size: 0.92rem !important;
+        font-size: 0.88rem !important;
         transition: all 0.25s ease-in-out !important;
         cursor: pointer;
         display: flex;
@@ -193,7 +185,7 @@ st.markdown(
     }
 
     [data-testid="stMetricValue"] {
-        font-size: 1.6rem !important;
+        font-size: 1.4rem !important;
         font-weight: 700 !important;
         color: #0f172a;
     }
@@ -206,8 +198,9 @@ st.markdown(
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         color: #1e293b !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         font-weight: 600 !important;
+        padding: 2px 8px !important;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
         transition: all 0.2s ease-in-out !important;
     }
@@ -319,6 +312,7 @@ def init_db():
   cols = [row[1] for row in cursor.fetchall()]
 
   columns_to_add = [
+      ("supplier", "TEXT"),
       ("machine_name", "TEXT"),
       ("notes", "TEXT"),
       ("start_time", "TEXT"),
@@ -455,7 +449,7 @@ def create_zip_archive(paths, names):
   return zip_buffer.getvalue()
 
 
-# SABİT LİSTELER
+# SABİT LİSTELER (YENİ DURUM SEÇENEKLERİ EKLENDİ)
 STATUS_OPTIONS = [
     "MALZEME SİPARİŞİ VERİLDİ",
     "DİK İŞLEME SIRADA",
@@ -472,6 +466,9 @@ STATUS_OPTIONS = [
     "TORNADA",
     "ISIL İŞLEM ASTAŞ",
     "ISIL İŞLEM ALPHA",
+    "ISIL İŞLEM VOESTALPINE",
+    "KAPLAYAMA GİDECEK",
+    "KAPLAMADA",
     "ELOKSAL KAPLAMA",
     "WJG SU JETİ",
     "ASM LAZER",
@@ -551,7 +548,7 @@ def parse_date(date_str):
 if os.path.exists("LOGO VE İSİM.JPG"):
   st.sidebar.image("LOGO VE İSİM.JPG", use_container_width=True)
 
-st.sidebar.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 5px;'></div>", unsafe_allow_html=True)
 
 menu = st.sidebar.radio(
     "SİSTEM KATEGORİLERİ",
@@ -601,15 +598,15 @@ with st.sidebar.expander("📥 Excel Yedeğinden Geri Yükle", expanded=False):
       else:
         st.error(msg)
 
-st.sidebar.caption("Eşme Makina MES v6.6 • 2026")
+st.sidebar.caption("Eşme Makina MES v6.7 • 2026")
 
 # ---------------------------------------------------------
 # ÜST LOGO & BAŞLIK ALANI (ANA SAYFA)
 # ---------------------------------------------------------
-col_header_logo, col_header_title = st.columns([1, 4])
+col_header_logo, col_header_title = st.columns([1, 5])
 with col_header_logo:
   if os.path.exists("LOGO VE İSİM.JPG"):
-    st.image("LOGO VE İSİM.JPG", width=220)
+    st.image("LOGO VE İSİM.JPG", width=180)
 with col_header_title:
   st.markdown("### ⚙️ EŞME MAKİNA MES - ÜRETİM & FASON YÖNETİM SİSTEMİ")
   st.caption(
@@ -640,14 +637,15 @@ if menu == "📊 İş Planı (Canlı Tablo)":
             "İş / Parça Adı *", placeholder="Ör: OKP4746.M PLATE"
         )
         mat = st.text_input(
-            "Malzeme Türü", placeholder="Ör: Ç.2379, 7075 Alüminyum", max_chars=15
+            "Malzeme Türü", placeholder="Ör: Ç.2379, 7075 Alüminyum", max_chars=20
         )
       with col2:
         dims = st.text_input(
             "Malzeme Ölçüleri", placeholder="Ör: 30x45x85 mm", max_chars=15
         )
         supp = st.text_input(
-            "Malzeme Siparişi / Tedarikçi", placeholder="Ör: ATLAS METAL"
+            "Malzeme Siparişi / Tedarikçi",
+            placeholder="Ör: ATLAS METAL, ALTEK METAL",
         )
         qty = st.number_input("Adet", min_value=1, value=10)
       with col3:
@@ -707,6 +705,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
     df_active["drawing_path"] = df_active["drawing_path"].fillna("")
     df_active["drawing_name"] = df_active["drawing_name"].fillna("")
     df_active["notes"] = df_active["notes"].fillna("")
+    df_active["supplier"] = df_active["supplier"].fillna("")
     df_active["machine_name"] = df_active["machine_name"].fillna(
         "YOK / ATANMADI"
     )
@@ -726,35 +725,38 @@ if menu == "📊 İş Planı (Canlı Tablo)":
           unsafe_allow_html=True,
       )
 
-      col_widths = [1.5, 0.8, 0.6, 0.4, 0.9, 1.1, 1.0, 0.8, 1.7, 1.0]
+      # Sütun Genişlikleri (Tedarikçi Firma Dahil Edildi)
+      col_widths = [1.4, 0.9, 0.9, 0.6, 0.4, 0.9, 1.2, 0.9, 0.7, 1.3, 0.8]
 
-      h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 = st.columns(col_widths)
+      h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(col_widths)
       with h1:
         st.caption("**İŞ / PARÇA ADI**")
       with h2:
         st.caption("**MALZEME**")
       with h3:
-        st.caption("**ÖLÇÜ**")
+        st.caption("**TEDARİKÇİ**")
       with h4:
-        st.caption("**ADET**")
+        st.caption("**ÖLÇÜ**")
       with h5:
-        st.caption("**ISIL İŞLEM**")
+        st.caption("**ADET**")
       with h6:
-        st.caption("**DURUM**")
+        st.caption("**ISIL İŞLEM**")
       with h7:
-        st.caption("**TEZGAH**")
+        st.caption("**DURUM**")
       with h8:
-        st.caption("**TERMİN**")
+        st.caption("**TEZGAH**")
       with h9:
-        st.caption("**NOT**")
+        st.caption("**TERMİN**")
       with h10:
+        st.caption("**NOT**")
+      with h11:
         st.caption("**İŞLEM**")
 
       for _, row in cust_df.iterrows():
         j_id = int(row["id"])
 
         st.markdown("<div class='job-row-card'>", unsafe_allow_html=True)
-        c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = st.columns(col_widths)
+        c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
 
         with c1:
           new_job = st.text_input(
@@ -767,21 +769,29 @@ if menu == "📊 İş Planı (Canlı Tablo)":
           new_mat = st.text_input(
               "Malzeme",
               value=row["material"],
-              max_chars=15,
+              max_chars=20,
               key=f"mat_{j_id}",
               label_visibility="collapsed",
               placeholder="Malzeme",
           )
         with c3:
+          new_supp = st.text_input(
+              "Tedarikçi",
+              value=row["supplier"],
+              key=f"supp_{j_id}",
+              label_visibility="collapsed",
+              placeholder="Atlas, Altek vb.",
+          )
+        with c4:
           new_dim = st.text_input(
-              "Ölçu",
+              "Ölçü",
               value=row["dimensions"],
               max_chars=15,
               key=f"dim_{j_id}",
               label_visibility="collapsed",
               placeholder="Ölçü",
           )
-        with c4:
+        with c5:
           new_qty = st.number_input(
               "Adet",
               value=int(row["quantity"]),
@@ -789,7 +799,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               key=f"qty_{j_id}",
               label_visibility="collapsed",
           )
-        with c5:
+        with c6:
           new_heat = st.text_input(
               "Isıl İşlem",
               value=row["heat_treatment"],
@@ -797,7 +807,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               label_visibility="collapsed",
               placeholder="Sertlik/Kaplama",
           )
-        with c6:
+        with c7:
           idx_st = (
               STATUS_OPTIONS.index(row["status"])
               if row["status"] in STATUS_OPTIONS
@@ -810,7 +820,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               key=f"st_{j_id}",
               label_visibility="collapsed",
           )
-        with c7:
+        with c8:
           idx_m = (
               MACHINE_OPTIONS.index(row["machine_name"])
               if row["machine_name"] in MACHINE_OPTIONS
@@ -823,7 +833,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               key=f"mac_{j_id}",
               label_visibility="collapsed",
           )
-        with c8:
+        with c9:
           new_ddl = st.text_input(
               "Termin",
               value=row["deadline"],
@@ -831,7 +841,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               label_visibility="collapsed",
               placeholder="STOK / Tarih",
           )
-        with c9:
+        with c10:
           new_note = st.text_input(
               "Not",
               value=row["notes"],
@@ -840,7 +850,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               placeholder="Not",
           )
 
-        with c10:
+        with c11:
           paths, names = parse_drawing_files(
               row["drawing_path"], row["drawing_name"]
           )
@@ -933,6 +943,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
         if (
             new_job != row["job_name"]
             or new_mat != row["material"]
+            or new_supp != row["supplier"]
             or new_dim != row["dimensions"]
             or new_qty != row["quantity"]
             or new_heat != row["heat_treatment"]
@@ -963,12 +974,13 @@ if menu == "📊 İş Planı (Canlı Tablo)":
             conn.execute(
                 """
                             UPDATE work_orders 
-                            SET job_name=?, material=?, dimensions=?, quantity=?, heat_treatment=?, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=?, notes=?, is_archived=1, end_time=?, duration_str=?
+                            SET job_name=?, material=?, supplier=?, dimensions=?, quantity=?, heat_treatment=?, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=?, notes=?, is_archived=1, end_time=?, duration_str=?
                             WHERE id=?
                         """,
                 (
                     new_job,
                     new_mat,
+                    new_supp,
                     new_dim,
                     new_qty,
                     new_heat,
@@ -990,12 +1002,13 @@ if menu == "📊 İş Planı (Canlı Tablo)":
             conn.execute(
                 """
                             UPDATE work_orders
-                            SET job_name=?, material=?, dimensions=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
+                            SET job_name=?, material=?, supplier=?, dimensions=?, quantity=?, heat_treatment=?, status=?, machine_name=?, deadline=?, notes=?
                             WHERE id=?
                         """,
                 (
                     new_job,
                     new_mat,
+                    new_supp,
                     new_dim,
                     new_qty,
                     new_heat,
@@ -1333,7 +1346,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
         )
       with col2:
         wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
-        wjg_dims = st.text_input("Ölçu (mm)", placeholder="Ör: 231x48x10")
+        wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
         wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
       with col3:
         wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
@@ -1546,8 +1559,8 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         c1, c2, c3 = st.columns(3)
         with c1:
           st.write(f"**Malzeme:** {r['material']}")
+          st.write(f"**Tedarikçi:** {r['supplier'] or 'Belirtilmedi'}")
           st.write(f"**Ölçü:** {r['dimensions']}")
-          st.write(f"**Tedarikçi:** {r['supplier']}")
         with c2:
           st.write(f"**Isıl İşlem:** {r['heat_treatment']}")
           st.write(f"**Başlangıç:** {r['start_time']}")
@@ -1945,7 +1958,9 @@ elif menu == "💬 Atölye Sohbeti":
   st.subheader("📜 Son Mesajlar")
   if not df_chat.empty:
     for _, r in df_chat.iterrows():
-      st.markdown(f"**👤 {r['user_name']}** _({r['created_at']})_")
-      st.info(f"{r['message']}")
+      st.markdown(
+          f"**👤 {r['user_name']}** ({r['created_at']}): {r['message']}"
+      )
+      st.divider()
   else:
-    st.caption("Henüz sohbet mesajı bulunmuyor.")
+    st.info("Henüz sohbet mesajı yok.")
