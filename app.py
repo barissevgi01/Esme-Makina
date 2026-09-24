@@ -198,10 +198,28 @@ st.markdown(
         color: #0f172a;
     }
     
-    .stButton>button {
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.2s ease-in-out;
+    /* TÜM BUTON, İNDİRME VE POPOVER İKONLARININ GÖRÜNÜMÜNÜ EŞİTLEME */
+    .stButton > button:not([kind="primary"]), 
+    div[data-testid="stDownloadButton"] > button:not([kind="primary"]),
+    div[data-testid="stDownloadButton"] > a,
+    div[data-testid="stPopover"] > button {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .stButton > button:not([kind="primary"]):hover, 
+    div[data-testid="stDownloadButton"] > button:not([kind="primary"]):hover,
+    div[data-testid="stDownloadButton"] > a:hover,
+    div[data-testid="stPopover"] > button:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #94a3b8 !important;
+        color: #0f172a !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08) !important;
     }
 </style>
 """,
