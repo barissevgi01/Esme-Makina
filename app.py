@@ -126,8 +126,8 @@ st.markdown(
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 6px;
-        padding: 3px 6px;
-        margin-bottom: 3px;
+        padding: 2px 6px;
+        margin-bottom: 1px;
         transition: all 0.2s ease;
     }
     .job-row-card:hover {
@@ -138,7 +138,7 @@ st.markdown(
 
     /* Elementlerin Dikey İç Marjinlerini Küçültme */
     div[data-testid="stVerticalBlock"] > div {
-        gap: 0.2rem !important;
+        gap: 0.05rem !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
