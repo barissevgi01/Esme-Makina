@@ -951,15 +951,15 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                 with st.form(key=f"edit_arch_form_{arch_id}"):
                     ac1, ac2, ac3, ac4, ac5 = st.columns(5)
                     with ac1:
-                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), key=f"arch_dik_{arch_id}")
+                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), step=1.0, key=f"arch_dik_{arch_id}")
                     with ac2:
-                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), key=f"arch_torna_{arch_id}")
+                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), step=1.0, key=f"arch_torna_{arch_id}")
                     with ac3:
-                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), key=f"arch_tel_{arch_id}")
+                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), step=1.0, key=f"arch_tel_{arch_id}")
                     with ac4:
-                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), key=f"arch_uni_{arch_id}")
+                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), step=1.0, key=f"arch_uni_{arch_id}")
                     with ac5:
-                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), key=f"arch_price_{arch_id}")
+                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), step=1.0, key=f"arch_price_{arch_id}")
                     
                     u_notes = st.text_area("İş / İmalat Notları", value=str(r['notes'] or ""), key=f"arch_notes_{arch_id}")
                     
