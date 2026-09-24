@@ -144,23 +144,85 @@ st.markdown(
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    /* Elementlerin Dikey İç Boşlukları (Minimuma İndirildi) */
-    div[data-testid="stVerticalBlock"] > div {
-        gap: 0.02rem !important;
+    /* =========================================================
+       SADECE İŞ PLANI SATIRLARINI KOMPAKTLAŞTIR
+       Diğer sayfalardaki Streamlit elemanlarının boşluklarına
+       kesinlikle müdahale edilmez.
+       st.container(key=...) tarafından oluşturulan sınıf kullanılır.
+       ========================================================= */
+
+    /* İş satırı container'ı */
+    [class*="st-key-job_row_"] {
+        gap: 0rem !important;
+        row-gap: 0rem !important;
+        padding: 2px 4px !important;
+        margin: 0 0 2px 0 !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 6px !important;
     }
-    
-    /* Input ve Select Elemanları İç Boşluk ve Margin Daraltma */
-    .job-row-card .stTextInput, 
-    .job-row-card .stSelectbox, 
-    .job-row-card .stNumberInput {
-        margin-bottom: 0px !important;
-        padding-bottom: 0px !important;
+
+    /* Satırın kendi kolonları */
+    [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] {
+        gap: 0.18rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    
-    .job-row-card div[data-baseweb="input"], 
-    .job-row-card div[data-baseweb="select"] {
+
+    /* Sadece iş satırındaki widget dış boşlukları */
+    [class*="st-key-job_row_"] div[data-testid="stTextInput"],
+    [class*="st-key-job_row_"] div[data-testid="stSelectbox"],
+    [class*="st-key-job_row_"] div[data-testid="stNumberInput"] {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Widget label'ı zaten collapsed; dikey yer kaplamasın */
+    [class*="st-key-job_row_"] div[data-testid="stWidgetLabel"] {
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+        height: 0 !important;
+    }
+
+    [class*="st-key-job_row_"] div[data-testid="stWidgetLabel"] > div {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Text / select / number input kontrol yüksekliği */
+    [class*="st-key-job_row_"] div[data-baseweb="input"],
+    [class*="st-key-job_row_"] div[data-baseweb="select"] {
         min-height: 28px !important;
-        font-size: 0.85rem !important;
+        height: 28px !important;
+        margin: 0 !important;
+        font-size: 0.82rem !important;
+    }
+
+    [class*="st-key-job_row_"] div[data-baseweb="input"] input {
+        height: 26px !important;
+        min-height: 26px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        font-size: 0.82rem !important;
+    }
+
+    [class*="st-key-job_row_"] div[data-baseweb="select"] > div {
+        min-height: 28px !important;
+        height: 28px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    /* İşlem butonları */
+    [class*="st-key-job_row_"] div[data-testid="stButton"] button,
+    [class*="st-key-job_row_"] div[data-testid="stDownloadButton"] button,
+    [class*="st-key-job_row_"] div[data-testid="stPopover"] > button {
+        min-height: 28px !important;
+        height: 28px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin: 0 !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
@@ -774,190 +836,190 @@ if menu == "📊 İş Planı (Canlı Tablo)":
       for _, row in cust_df.iterrows():
         j_id = int(row["id"])
 
-        st.markdown("<div class='job-row-card'>", unsafe_allow_html=True)
-        c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
+        with st.container(key=f"job_row_{j_id}"):
+          c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
 
-        with c1:
-          new_job = st.text_input(
-              "İş Adı",
-              value=row["job_name"],
-              key=f"job_{j_id}",
-              label_visibility="collapsed",
-          )
-        with c2:
-          new_mat = st.text_input(
-              "Malzeme",
-              value=row["material"],
-              max_chars=20,
-              key=f"mat_{j_id}",
-              label_visibility="collapsed",
-              placeholder="Malzeme",
-          )
-        with c3:
-          new_supp = st.text_input(
-              "Tedarikçi",
-              value=row["supplier"],
-              key=f"supp_{j_id}",
-              label_visibility="collapsed",
-              placeholder="Atlas, Altek vb.",
-          )
-        with c4:
-          new_dim = st.text_input(
-              "Ölçü",
-              value=row["dimensions"],
-              max_chars=15,
-              key=f"dim_{j_id}",
-              label_visibility="collapsed",
-              placeholder="Ölçü",
-          )
-        with c5:
-          new_qty = st.number_input(
-              "Adet",
-              value=int(row["quantity"]),
-              min_value=1,
-              key=f"qty_{j_id}",
-              label_visibility="collapsed",
-          )
-        with c6:
-          new_heat = st.text_input(
-              "Isıl İşlem",
-              value=row["heat_treatment"],
-              key=f"heat_{j_id}",
-              label_visibility="collapsed",
-              placeholder="Sertlik/Kaplama",
-          )
-        with c7:
-          idx_st = (
-              STATUS_OPTIONS.index(row["status"])
-              if row["status"] in STATUS_OPTIONS
-              else 0
-          )
-          new_st = st.selectbox(
-              "Durum",
-              STATUS_OPTIONS,
-              index=idx_st,
-              key=f"st_{j_id}",
-              label_visibility="collapsed",
-          )
-        with c8:
-          idx_m = (
-              MACHINE_OPTIONS.index(row["machine_name"])
-              if row["machine_name"] in MACHINE_OPTIONS
-              else 0
-          )
-          new_mac = st.selectbox(
-              "Tezgah",
-              MACHINE_OPTIONS,
-              index=idx_m,
-              key=f"mac_{j_id}",
-              label_visibility="collapsed",
-          )
-        with c9:
-          new_ddl = st.text_input(
-              "Termin",
-              value=row["deadline"],
-              key=f"ddl_{j_id}",
-              label_visibility="collapsed",
-              placeholder="STOK / Tarih",
-          )
-        with c10:
-          new_note = st.text_input(
-              "Not",
-              value=row["notes"],
-              key=f"note_{j_id}",
-              label_visibility="collapsed",
-              placeholder="Not",
-          )
+          with c1:
+            new_job = st.text_input(
+                "İş Adı",
+                value=row["job_name"],
+                key=f"job_{j_id}",
+                label_visibility="collapsed",
+            )
+          with c2:
+            new_mat = st.text_input(
+                "Malzeme",
+                value=row["material"],
+                max_chars=20,
+                key=f"mat_{j_id}",
+                label_visibility="collapsed",
+                placeholder="Malzeme",
+            )
+          with c3:
+            new_supp = st.text_input(
+                "Tedarikçi",
+                value=row["supplier"],
+                key=f"supp_{j_id}",
+                label_visibility="collapsed",
+                placeholder="Atlas, Altek vb.",
+            )
+          with c4:
+            new_dim = st.text_input(
+                "Ölçü",
+                value=row["dimensions"],
+                max_chars=15,
+                key=f"dim_{j_id}",
+                label_visibility="collapsed",
+                placeholder="Ölçü",
+            )
+          with c5:
+            new_qty = st.number_input(
+                "Adet",
+                value=int(row["quantity"]),
+                min_value=1,
+                key=f"qty_{j_id}",
+                label_visibility="collapsed",
+            )
+          with c6:
+            new_heat = st.text_input(
+                "Isıl İşlem",
+                value=row["heat_treatment"],
+                key=f"heat_{j_id}",
+                label_visibility="collapsed",
+                placeholder="Sertlik/Kaplama",
+            )
+          with c7:
+            idx_st = (
+                STATUS_OPTIONS.index(row["status"])
+                if row["status"] in STATUS_OPTIONS
+                else 0
+            )
+            new_st = st.selectbox(
+                "Durum",
+                STATUS_OPTIONS,
+                index=idx_st,
+                key=f"st_{j_id}",
+                label_visibility="collapsed",
+            )
+          with c8:
+            idx_m = (
+                MACHINE_OPTIONS.index(row["machine_name"])
+                if row["machine_name"] in MACHINE_OPTIONS
+                else 0
+            )
+            new_mac = st.selectbox(
+                "Tezgah",
+                MACHINE_OPTIONS,
+                index=idx_m,
+                key=f"mac_{j_id}",
+                label_visibility="collapsed",
+            )
+          with c9:
+            new_ddl = st.text_input(
+                "Termin",
+                value=row["deadline"],
+                key=f"ddl_{j_id}",
+                label_visibility="collapsed",
+                placeholder="STOK / Tarih",
+            )
+          with c10:
+            new_note = st.text_input(
+                "Not",
+                value=row["notes"],
+                key=f"note_{j_id}",
+                label_visibility="collapsed",
+                placeholder="Not",
+            )
 
-        with c11:
-          paths, names = parse_drawing_files(
-              row["drawing_path"], row["drawing_name"]
-          )
-          has_files = len(paths) > 0 and any(os.path.exists(p) for p in paths)
+          with c11:
+            paths, names = parse_drawing_files(
+                row["drawing_path"], row["drawing_name"]
+            )
+            has_files = len(paths) > 0 and any(os.path.exists(p) for p in paths)
 
-          ic1, ic2, ic3 = st.columns(3)
+            ic1, ic2, ic3 = st.columns(3)
 
-          with ic1:
-            with st.popover("📤", help="Teknik Resim / Dosyalar Yükle"):
-              up_files = st.file_uploader(
-                  "Dosyaları Seçin",
-                  type=None,
-                  accept_multiple_files=True,
-                  key=f"up_{j_id}",
-                  label_visibility="collapsed",
-              )
-              if up_files:
-                new_paths, new_names = [], []
-                for up_file in up_files:
-                  orig_name = str(up_file.name)
-                  s_filename = f"job_{j_id}_{orig_name}"
-                  s_path = os.path.join("uploads", s_filename)
-                  with open(s_path, "wb") as f:
-                    f.write(up_file.getbuffer())
-                  new_paths.append(s_path)
-                  new_names.append(orig_name)
-
-                path_json, name_json = format_drawing_files(
-                    new_paths, new_names
+            with ic1:
+              with st.popover("📤", help="Teknik Resim / Dosyalar Yükle"):
+                up_files = st.file_uploader(
+                    "Dosyaları Seçin",
+                    type=None,
+                    accept_multiple_files=True,
+                    key=f"up_{j_id}",
+                    label_visibility="collapsed",
                 )
-                conn = get_db_connection()
-                conn.execute(
-                    "UPDATE work_orders SET drawing_path = ?, drawing_name = ?"
-                    " WHERE id = ?",
-                    (path_json, name_json, j_id),
-                )
-                conn.commit()
-                conn.close()
-                st.toast(
-                    f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢"
-                )
-                st.rerun()
+                if up_files:
+                  new_paths, new_names = [], []
+                  for up_file in up_files:
+                    orig_name = str(up_file.name)
+                    s_filename = f"job_{j_id}_{orig_name}"
+                    s_path = os.path.join("uploads", s_filename)
+                    with open(s_path, "wb") as f:
+                      f.write(up_file.getbuffer())
+                    new_paths.append(s_path)
+                    new_names.append(orig_name)
 
-          with ic2:
-            if has_files:
-              valid_paths = [p for p in paths if os.path.exists(p)]
-              valid_names = [
-                  n for p, n in zip(paths, names) if os.path.exists(p)
-              ]
+                  path_json, name_json = format_drawing_files(
+                      new_paths, new_names
+                  )
+                  conn = get_db_connection()
+                  conn.execute(
+                      "UPDATE work_orders SET drawing_path = ?, drawing_name = ?"
+                      " WHERE id = ?",
+                      (path_json, name_json, j_id),
+                  )
+                  conn.commit()
+                  conn.close()
+                  st.toast(
+                      f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢"
+                  )
+                  st.rerun()
 
-              if len(valid_paths) == 1:
-                with open(valid_paths[0], "rb") as f_bytes:
+            with ic2:
+              if has_files:
+                valid_paths = [p for p in paths if os.path.exists(p)]
+                valid_names = [
+                    n for p, n in zip(paths, names) if os.path.exists(p)
+                ]
+
+                if len(valid_paths) == 1:
+                  with open(valid_paths[0], "rb") as f_bytes:
+                    st.download_button(
+                        "📥",
+                        f_bytes.read(),
+                        file_name=valid_names[0],
+                        key=f"dl_{j_id}",
+                        help=f"İndir ({valid_names[0]})",
+                    )
+                else:
+                  zip_bytes = create_zip_archive(valid_paths, valid_names)
+                  zip_file_name = f"{row['job_name']}_dosyalar.zip"
                   st.download_button(
                       "📥",
-                      f_bytes.read(),
-                      file_name=valid_names[0],
+                      zip_bytes,
+                      file_name=zip_file_name,
+                      mime="application/zip",
                       key=f"dl_{j_id}",
-                      help=f"İndir ({valid_names[0]})",
+                      help=(
+                          f"Tüm {len(valid_paths)} dosyayı ZIP olarak indir"
+                      ),
                   )
               else:
-                zip_bytes = create_zip_archive(valid_paths, valid_names)
-                zip_file_name = f"{row['job_name']}_dosyalar.zip"
-                st.download_button(
-                    "📥",
-                    zip_bytes,
-                    file_name=zip_file_name,
-                    mime="application/zip",
-                    key=f"dl_{j_id}",
-                    help=(
-                        f"Tüm {len(valid_paths)} dosyayı ZIP olarak indir"
-                    ),
-                )
-            else:
-              if st.button("📥", key=f"nodl_{j_id}", help="Yüklü dosya yok"):
-                st.toast(
-                    "Bu iş için yüklü teknik resim/dosya bulunmuyor.", icon="ℹ️"
-                )
+                if st.button("📥", key=f"nodl_{j_id}", help="Yüklü dosya yok"):
+                  st.toast(
+                      "Bu iş için yüklü teknik resim/dosya bulunmuyor.", icon="ℹ️"
+                  )
 
-          with ic3:
-            if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
-              conn = get_db_connection()
-              conn.execute("DELETE FROM work_orders WHERE id = ?", (j_id,))
-              conn.commit()
-              conn.close()
-              st.toast("İş silindi!", icon="🗑️")
-              st.rerun()
+            with ic3:
+              if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
+                conn = get_db_connection()
+                conn.execute("DELETE FROM work_orders WHERE id = ?", (j_id,))
+                conn.commit()
+                conn.close()
+                st.toast("İş silindi!", icon="🗑️")
+                st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+
 
         if (
             new_job != row["job_name"]
