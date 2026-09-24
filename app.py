@@ -3,6 +3,9 @@ import pandas as pd
 import sqlite3
 import math
 import os
+import json
+import io
+import zipfile
 from datetime import datetime
 
 # ---------------------------------------------------------
@@ -278,6 +281,31 @@ def init_db():
 
 init_db()
 
+# HELPER FONKSİYONLAR (ÇOKLU DOSYA DESTEĞİ İÇİN)
+def parse_drawing_files(path_str, name_str):
+    if not path_str:
+        return [], []
+    try:
+        paths = json.loads(path_str)
+        names = json.loads(name_str)
+        return paths, names
+    except Exception:
+        if ";" in str(path_str):
+            return str(path_str).split(";"), str(name_str).split(";")
+        return [str(path_str)], [str(name_str)]
+
+def format_drawing_files(paths, names):
+    return json.dumps(paths), json.dumps(names)
+
+def create_zip_archive(paths, names):
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for p, n in zip(paths, names):
+            if os.path.exists(p):
+                zip_file.write(p, arcname=n)
+    zip_buffer.seek(0)
+    return zip_buffer.getvalue()
+
 # SABİT LİSTELER
 STATUS_OPTIONS = [
     "MALZEME SİPARİŞİ VERİLDİ",
@@ -458,8 +486,11 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 </div>
             """, unsafe_allow_html=True)
 
-            # TÜM SÜTUNLAR TEK SATIRDA YAN YANA
-            h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 = st.columns([1.6, 0.9, 0.9, 0.6, 1.0, 1.2, 1.1, 0.9, 1.1, 1.0])
+            # REVİZE 4: ÖLÇÜ VE ADET GENİŞLİĞİ KÜÇÜLTÜLDÜ, NOT GENİŞLİĞİ ARTIRILDI
+            # Kolon Oranları: [1.5, 0.8, 0.6, 0.4, 0.9, 1.1, 1.0, 0.8, 1.7, 1.0]
+            col_widths = [1.5, 0.8, 0.6, 0.4, 0.9, 1.1, 1.0, 0.8, 1.7, 1.0]
+            
+            h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 = st.columns(col_widths)
             with h1: st.caption("**İŞ / PARÇA ADI**")
             with h2: st.caption("**MALZEME**")
             with h3: st.caption("**ÖLÇÜ**")
@@ -475,7 +506,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 j_id = int(row['id'])
                 
                 st.markdown("<div class='job-row-card'>", unsafe_allow_html=True)
-                c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = st.columns([1.6, 0.9, 0.9, 0.6, 1.0, 1.2, 1.1, 0.9, 1.1, 1.0])
+                c1, c2, c3, c4, c5, c6, c7, c8, c9, c10 = st.columns(col_widths)
                 
                 with c1:
                     new_job = st.text_input("İş Adı", value=row['job_name'], key=f"job_{j_id}", label_visibility="collapsed")
@@ -499,34 +530,47 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                     new_note = st.text_input("Not", value=row['notes'], key=f"note_{j_id}", label_visibility="collapsed", placeholder="Not")
                 
                 with c10:
-                    d_path = str(row['drawing_path'])
-                    d_name = str(row['drawing_name'])
-                    has_file = bool(d_path and os.path.exists(d_path))
+                    paths, names = parse_drawing_files(row['drawing_path'], row['drawing_name'])
+                    has_files = len(paths) > 0 and any(os.path.exists(p) for p in paths)
                     
-                    # Sadece İkonlar ile Yer Tasarrufu
                     ic1, ic2, ic3 = st.columns(3)
                     
+                    # REVİZE 5: SINIRSIZ DOSYA YÜKLEME
                     with ic1:
-                        with st.popover("📤", help="Teknik Resim / Dosya Yükle"):
-                            up_file = st.file_uploader("Dosya Seçin", type=None, key=f"up_{j_id}", label_visibility="collapsed")
-                            if up_file is not None:
-                                original_filename = str(up_file.name)
-                                save_filename = f"job_{j_id}_{original_filename}"
-                                save_path = os.path.join("uploads", save_filename)
-                                with open(save_path, "wb") as f:
-                                    f.write(up_file.getbuffer())
+                        with st.popover("📤", help="Teknik Resim / Dosyalar Yükle"):
+                            up_files = st.file_uploader("Dosyaları Seçin", type=None, accept_multiple_files=True, key=f"up_{j_id}", label_visibility="collapsed")
+                            if up_files:
+                                new_paths, new_names = [], []
+                                for up_file in up_files:
+                                    orig_name = str(up_file.name)
+                                    s_filename = f"job_{j_id}_{orig_name}"
+                                    s_path = os.path.join("uploads", s_filename)
+                                    with open(s_path, "wb") as f:
+                                        f.write(up_file.getbuffer())
+                                    new_paths.append(s_path)
+                                    new_names.append(orig_name)
                                 
+                                path_json, name_json = format_drawing_files(new_paths, new_names)
                                 conn = get_db_connection()
-                                conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (save_path, original_filename, j_id))
+                                conn.execute("UPDATE work_orders SET drawing_path = ?, drawing_name = ? WHERE id = ?", (path_json, name_json, j_id))
                                 conn.commit()
                                 conn.close()
-                                st.toast("Dosya yüklendi!", icon="🟢")
+                                st.toast(f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢")
                                 st.rerun()
 
+                    # REVİZE 5: YÜKLENEN DOSYALARI TEK TIKLA ZIP VEYA DİREKT İNDİR
                     with ic2:
-                        if has_file:
-                            with open(d_path, "rb") as f_bytes:
-                                st.download_button("📥", f_bytes.read(), file_name=d_name, key=f"dl_{j_id}", help=f"Dosyayı İndir ({d_name})")
+                        if has_files:
+                            valid_paths = [p for p in paths if os.path.exists(p)]
+                            valid_names = [n for p, n in zip(paths, names) if os.path.exists(p)]
+                            
+                            if len(valid_paths) == 1:
+                                with open(valid_paths[0], "rb") as f_bytes:
+                                    st.download_button("📥", f_bytes.read(), file_name=valid_names[0], key=f"dl_{j_id}", help=f"İndir ({valid_names[0]})")
+                            else:
+                                zip_bytes = create_zip_archive(valid_paths, valid_names)
+                                zip_file_name = f"{row['job_name']}_dosyalar.zip"
+                                st.download_button("📥", zip_bytes, file_name=zip_file_name, mime="application/zip", key=f"dl_{j_id}", help=f"Tüm {len(valid_paths)} dosyayı ZIP olarak indir")
                         else:
                             st.button("🚫", disabled=True, key=f"nodl_{j_id}", help="Yüklü dosya yok")
 
@@ -587,7 +631,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
 # ---------------------------------------------------------
 elif menu == "🛠️ Tezgah Parkı Durumu":
     st.markdown("## 🛠️ Tezgah Parkı Anlık Durum Panosu")
-    st.caption("İş planında 'BAĞLI TEZGAH' olarak atadığınız makinelerin canlı yük durumu.")
+    st.caption("İş planında 'BAĞLI TEZGAH' olarak atadığınız makinelerin canlı yük durumu ve iş bağlanma zamanları.")
 
     MACHINES = {
         "CNC Dik İşleme": [f"CNC Dik İşleme {i}" for i in range(1, 6)],
@@ -604,7 +648,12 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         for _, r in df_active.iterrows():
             m_name = r['machine_name']
             if m_name and m_name != "YOK / ATANMADI":
-                assigned_jobs[m_name] = f"🏢 **{r['customer']}** - {r['job_name']}"
+                # REVİZE 6: İŞİN TEZGAHA HANGİ TARİH VE SAATTE BAĞLANDIĞI BİLGİSİ
+                conn_time = r['start_time'] or r['created_at'] or "Tarih Belirtilmedi"
+                assigned_jobs[m_name] = {
+                    "text": f"🏢 **{r['customer']}** - {r['job_name']}",
+                    "time": conn_time
+                }
 
     total_machines = 12
     busy_count = len(assigned_jobs)
@@ -624,7 +673,8 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         for m in MACHINES["CNC Dik İşleme"]:
             if m in assigned_jobs:
                 st.markdown(f"**{m}**: 🔴 **ÇALIŞIYOR**")
-                st.caption(f"Bağlı İş: {assigned_jobs[m]}")
+                st.caption(f"Bağlı İş: {assigned_jobs[m]['text']}")
+                st.caption(f"🕒 **Bağlanma Zamanı:** {assigned_jobs[m]['time']}")
             else:
                 st.markdown(f"**{m}**: 🟢 **BOŞ / HAZIR**")
             st.write("---")
@@ -635,7 +685,8 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         for m in MACHINES["CNC Torna"]:
             if m in assigned_jobs:
                 st.markdown(f"**{m}**: 🔴 **ÇALIŞIYOR**")
-                st.caption(f"Bağlı İş: {assigned_jobs[m]}")
+                st.caption(f"Bağlı İş: {assigned_jobs[m]['text']}")
+                st.caption(f"🕒 **Bağlanma Zamanı:** {assigned_jobs[m]['time']}")
             else:
                 st.markdown(f"**{m}**: 🟢 **BOŞ / HAZIR**")
             st.write("---")
@@ -646,7 +697,8 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         for m in MACHINES["Tel Erezyon"]:
             if m in assigned_jobs:
                 st.markdown(f"**{m}**: 🔴 **ÇALIŞIYOR**")
-                st.caption(f"Bağlı İş: {assigned_jobs[m]}")
+                st.caption(f"Bağlı İş: {assigned_jobs[m]['text']}")
+                st.caption(f"🕒 **Bağlanma Zamanı:** {assigned_jobs[m]['time']}")
             else:
                 st.markdown(f"**{m}**: 🟢 **BOŞ / HAZIR**")
             st.write("---")
@@ -657,7 +709,7 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
 # ---------------------------------------------------------
 elif menu == "🔥 Isıl İşlem Takip":
     st.markdown("## 🔥 Isıl İşlem Takip Modülü")
-    st.caption("Fason ısıl işleme gönderilen malzemelerin firma, sertlik, kg ve fatura durum takibi. Tablodaki değişiklikler otomatik kaydedilir.")
+    st.caption("Fason ısıl işleme gönderilen malzemelerin firma, sertlik, kg ve fatura durum takibi.")
 
     with st.expander("➕ **Yeni Isıl İşlem Gönderim Kaydı Ekle**", expanded=False):
         with st.form("add_ht_form", clear_on_submit=True):
@@ -756,7 +808,7 @@ elif menu == "🔥 Isıl İşlem Takip":
 # ---------------------------------------------------------
 elif menu == "🌊 Su Jeti (WJG) Takip":
     st.markdown("## 🌊 Su Jeti (WJG) Takip Modülü")
-    st.caption("Su jetinde kesilen parçaların adet, ölçü, birim fiyat ve fatura durum takibi. Tablo otomatik kaydedilir.")
+    st.caption("Su jetinde kesilen parçaların adet, ölçü, birim fiyat ve fatura durum takibi.")
 
     with st.expander("➕ **Yeni Su Jeti (WJG) Kesim Kaydı Ekle**", expanded=False):
         with st.form("add_wjg_form", clear_on_submit=True):
@@ -767,7 +819,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 wjg_part = st.text_input("Parça Tanımı *", placeholder="Ör: GAGALI SLOT BIÇAĞI")
             with col2:
                 wjg_code = st.text_input("Parça Kodu", placeholder="Ör: LMC231")
-                wjg_dims = st.text_input("Ölçü (mm)", placeholder="Ör: 231x48x10")
+                wjg_dims = st.text_input("Ölkü (mm)", placeholder="Ör: 231x48x10")
                 wjg_ord_qty = st.number_input("Sipariş Adedi", min_value=1, value=10)
             with col3:
                 wjg_rec_qty = st.number_input("Gelen Adet", min_value=0, value=10)
@@ -850,7 +902,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
 # ---------------------------------------------------------
 elif menu == "📚 İmalat Hafızası (Arşiv)":
     st.markdown("## 📚 İMALAT HAFIZASI (GEÇMİŞ SİPARİŞ ARŞİVİ)")
-    st.caption("Tamamlanan işlerin imalat süreleri, notları ve teknik resim hafızası.")
+    st.caption("Tamamlanan işlerin imalat süreleri, fiyatları, notları ve teknik resim hafızası.")
 
     conn = get_db_connection()
     df_arch = pd.read_sql_query("SELECT * FROM work_orders WHERE is_archived = 1 ORDER BY id DESC", conn)
@@ -889,12 +941,54 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                     st.write(f"**Başlangıç:** {r['start_time']}")
                     st.write(f"**Bitiş:** {r['end_time']}")
                 with c3:
-                    st.write(f"**Geçen Süre:** {r['duration_str']}")
-                    st.write(f"**Notlar:** {r['notes']}")
+                    st.write(f"**Geçen Toplam Süre:** {r['duration_str']}")
+                    st.write(f"**Kayıtlı Fiyat:** {r['price'] or 0.0:.2f} ₺")
 
-                if r['drawing_path'] and os.path.exists(r['drawing_path']):
-                    with open(r['drawing_path'], "rb") as f_bytes:
-                        st.download_button(f"📥 Technical Drawing: {r['drawing_name']}", f_bytes.read(), file_name=r['drawing_name'], key=f"arch_dl_{arch_id}")
+                st.markdown("---")
+                
+                # REVİZE 7: İMALAT SÜRELERİ (DİK İŞLEME, CNC TORNA, TEL EREZYON, ÜNİVERSAL TEZGAH), FİYAT VE NOT DÜZENLEME
+                st.markdown("##### ⏱️ İmalat Süreleri, Fiyat & Not Düzenleme")
+                with st.form(key=f"edit_arch_form_{arch_id}"):
+                    ac1, ac2, ac3, ac4, ac5 = st.columns(5)
+                    with ac1:
+                        u_dik = st.number_input("Dik İşleme Süresi (Dk)", min_value=0.0, value=float(r['dik_time'] or 0.0), key=f"arch_dik_{arch_id}")
+                    with ac2:
+                        u_torna = st.number_input("CNC Torna Süresi (Dk)", min_value=0.0, value=float(r['torna_time'] or 0.0), key=f"arch_torna_{arch_id}")
+                    with ac3:
+                        u_tel = st.number_input("Tel Erezyon Süresi (Dk)", min_value=0.0, value=float(r['tel_time'] or 0.0), key=f"arch_tel_{arch_id}")
+                    with ac4:
+                        u_uni = st.number_input("Üniversal Tezgah (Dk)", min_value=0.0, value=float(r['uni_time'] or 0.0), key=f"arch_uni_{arch_id}")
+                    with ac5:
+                        u_price = st.number_input("Mevcut İş Fiyatı (₺)", min_value=0.0, value=float(r['price'] or 0.0), key=f"arch_price_{arch_id}")
+                    
+                    u_notes = st.text_area("İş / İmalat Notları", value=str(r['notes'] or ""), key=f"arch_notes_{arch_id}")
+                    
+                    save_arch_btn = st.form_submit_button("💾 Arşiv Bilgilerini Güncelle ve Kaydet", type="primary")
+                    if save_arch_btn:
+                        conn = get_db_connection()
+                        conn.execute('''
+                            UPDATE work_orders
+                            SET dik_time=?, torna_time=?, tel_time=?, uni_time=?, price=?, notes=?
+                            WHERE id=?
+                        ''', (u_dik, u_torna, u_tel, u_uni, u_price, u_notes.strip(), arch_id))
+                        conn.commit()
+                        conn.close()
+                        st.toast("Arşiv bilgileri başarıyla güncellendi!", icon="💾")
+                        st.rerun()
+
+                st.markdown("---")
+                
+                paths, names = parse_drawing_files(r['drawing_path'], r['drawing_name'])
+                valid_paths = [p for p in paths if os.path.exists(p)]
+                valid_names = [n for p, n in zip(paths, names) if os.path.exists(p)]
+                
+                if valid_paths:
+                    if len(valid_paths) == 1:
+                        with open(valid_paths[0], "rb") as f_bytes:
+                            st.download_button(f"📥 Teknik Resim İndir ({valid_names[0]})", f_bytes.read(), file_name=valid_names[0], key=f"arch_dl_{arch_id}")
+                    else:
+                        zip_bytes = create_zip_archive(valid_paths, valid_names)
+                        st.download_button(f"📥 Tüm Teknik Resimleri ZIP Olarak İndir ({len(valid_paths)} Dosya)", zip_bytes, file_name=f"{r['job_name']}_arhiv_dosyalar.zip", mime="application/zip", key=f"arch_dl_{arch_id}")
 
                 col_b1, col_b2 = st.columns([1, 1])
                 with col_b1:
@@ -917,7 +1011,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
 # ---------------------------------------------------------
-# 6. AKILLI MALİYET HESABI (TEK SAYFADA BİRLEŞTİRİLMİŞ)
+# 6. AKILLI MALİYET HESABI
 # ---------------------------------------------------------
 elif menu == "💰 Akıllı Maliyet Hesabı":
     st.markdown("## 💰 Akıllı Parça & İşleme Maliyet Hesaplayıcı")
@@ -983,9 +1077,13 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
 
         st.markdown("---")
         c_fason1, c_fason2 = st.columns(2)
+        
+        # REVİZE 2 VE 3: ETİKET İSİMLERİ DÜZELTİLDİ
         with c_fason1:
-            fason_ht = st.number_input("Isıl İşlem Fason Maliyeti (₺)", min_value=0.0, value=150.0, key="cost_fason_ht")
-            fason_coat = st.number_input("Kaplama / Su Jeti Fason (₺)", min_value=0.0, value=0.0, key="cost_fason_coat")
+            fason_ht = st.number_input("ISIL İŞLEM MALİYETİ (₺)", min_value=0.0, value=150.0, key="cost_fason_ht")
+            fason_coat = st.number_input("KAPLAMA/SU JETİ MALİYETİ (₺)", min_value=0.0, value=0.0, key="cost_fason_coat")
+        
+        # REVİZE 1: SOL TARAFDAKİ HESAPLANAN HAMMADDE MALİYETİ OTOMATİK OLARAK AKTARILIYOR
         with c_fason2:
             mat_cost_input = st.number_input("Hammadde Maliyeti (₺)", min_value=0.0, value=float(total_mat_cost), key="cost_mat_input", help="Sol tarafta hesaplanan hammadde maliyeti otomatik gelir.")
             profit_margin = st.slider("Kâr Marjı (%)", min_value=0, max_value=100, value=30, key="cost_profit")
