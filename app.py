@@ -105,48 +105,62 @@ st.markdown(
     .firm-header-band {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         color: #ffffff;
-        padding: 10px 18px;
-        border-radius: 8px;
+        padding: 8px 16px;
+        border-radius: 6px;
         font-weight: 700;
-        font-size: 1rem;
+        font-size: 0.95rem;
         letter-spacing: 0.4px;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 16px;
-        margin-bottom: 8px;
+        margin-top: 10px;
+        margin-bottom: 4px;
         border-left: 4px solid #3b82f6;
     }
     
     .count-badge {
         background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         color: #ffffff;
-        padding: 3px 10px;
+        padding: 2px 8px;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 700;
         box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
     }
 
-    /* Satır İçi İş Kartı */
+    /* Satır İçi İş Kartı - Neredeyse Bitişik ve Kompakt */
     .job-row-card {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 6px 8px;
-        margin-bottom: 4px;
+        border-radius: 6px;
+        padding: 2px 6px !important;
+        margin-bottom: 2px !important;
         transition: all 0.2s ease;
     }
     .job-row-card:hover {
         border-color: #94a3b8;
         background-color: #ffffff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
 
-    /* Elementlerin Dikey İç Boşlukları */
+    /* Elementlerin Dikey İç Boşlukları (Minimuma İndirildi) */
     div[data-testid="stVerticalBlock"] > div {
-        gap: 0.1rem !important;
+        gap: 0.02rem !important;
+    }
+    
+    /* Input ve Select Elemanları İç Boşluk ve Margin Daraltma */
+    .job-row-card .stTextInput, 
+    .job-row-card .stSelectbox, 
+    .job-row-card .stNumberInput {
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
+    }
+    
+    .job-row-card div[data-baseweb="input"], 
+    .job-row-card div[data-baseweb="select"] {
+        min-height: 28px !important;
+        font-size: 0.85rem !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
@@ -208,11 +222,12 @@ st.markdown(
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         color: #1e293b !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         font-weight: 600 !important;
-        padding: 4px 10px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        padding: 2px 6px !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
         transition: all 0.2s ease-in-out !important;
+        min-height: 28px !important;
     }
 
     .stButton > button:not([kind="primary"]):hover, 
@@ -222,7 +237,7 @@ st.markdown(
         background-color: #f8fafc !important;
         border-color: #3b82f6 !important;
         color: #1d4ed8 !important;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12) !important;
         transform: translateY(-1px);
     }
 </style>
