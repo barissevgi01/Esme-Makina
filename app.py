@@ -44,6 +44,47 @@ st.markdown(
         max-width: 98%;
     }
 
+    /* Streamlit Üst Header Beyazlığını Kaldırma & Saydamlaştırma */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+        background: transparent !important;
+    }
+    
+    [data-testid="stSidebarHeader"] {
+        background-color: transparent !important;
+        background: transparent !important;
+        padding-top: 0rem !important;
+    }
+
+    /* Sol Menü (Sidebar) Koyu Tema ve Arka Plan Düzeltmesi */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+    }
+    
+    [data-testid="stSidebar"] > div:first-child {
+        background: transparent !important;
+    }
+
+    [data-testid="stSidebarContent"] {
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: #f8fafc !important;
+    }
+
+    /* Sidebar İçindeki Expander / Açılır Kutular */
+    [data-testid="stSidebar"] details {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px !important;
+        color: #f8fafc !important;
+    }
+
+    [data-testid="stSidebar"] summary {
+        color: #f8fafc !important;
+    }
+
     /* Üst Logo ve Başlık Alanı */
     .brand-header {
         display: flex;
@@ -106,16 +147,6 @@ st.markdown(
         border-color: #cbd5e1;
         background-color: #ffffff;
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    /* Sol Menü (Sidebar) Modernizasyonu */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
-        padding-top: 1rem;
-    }
-    
-    [data-testid="stSidebar"] * {
-        color: #f8fafc !important;
     }
 
     [data-testid="stSidebar"] .stRadio > label {
