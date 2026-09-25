@@ -957,21 +957,26 @@ menu = st.sidebar.radio(
 
 st.sidebar.markdown("---")
 
-excel_backup = export_all_to_excel()
-backup_filename = f"Esme_Makina_Yedek_{get_now().strftime('%Y%m%d_%H%M')}.xlsx"
-
-st.sidebar.download_button(
-    label="📊 Tüm Verileri Excel'e Aktar",
+# Excel yalnızca kullanıcının açık isteğiyle hazırlanır.
+# Hazırlanan dosya sonraki işlemlerde saklanmaz; eski yedek indirilmesini önler.
+if st.sidebar.button(
+    "📊 Tüm Verileri Excel'e Aktar",
     key="excel_backup_button",
-    data=excel_backup,
-    file_name=backup_filename,
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     use_container_width=True,
-    help=(
-        "Tüm aktif işler, arşiv, ısıl işlem, su jeti ve sohbet geçmişini Excel"
-        " dosyası olarak indirir."
-    ),
-)
+    help="Güncel kayıtların Excel yedeğini hazırlar. Ardından indirme düğmesine basın.",
+):
+  with st.spinner("Excel yedeği hazırlanıyor…"):
+    excel_backup = export_all_to_excel()
+  backup_filename = f"Esme_Makina_Yedek_{get_now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+  st.sidebar.download_button(
+      label="📥 Hazırlanan Excel Yedeğini İndir",
+      key="excel_backup_download",
+      data=excel_backup,
+      file_name=backup_filename,
+      mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      use_container_width=True,
+      on_click="ignore",
+  )
 
 with st.sidebar.expander("📥 Excel Yedeğinden Geri Yükle", expanded=False):
   uploaded_restore_file = st.file_uploader(
