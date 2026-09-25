@@ -867,6 +867,72 @@ def parse_date(date_str):
   return None
 
 
+
+# ---------------------------------------------------------
+# TEL EREZYON: ÖN PLANLAMA MODELİ (25.09.2026)
+# Kaynak noktaları tezgâh teknolojisi değildir. Kalınlığa genelleme ve
+# finiş katsayısı açıkça belirtilmiş planlama varsayımlarıdır.
+# ---------------------------------------------------------
+EDM_MATERIALS = {
+    "Çelik": (100.0, "50 mm çelik için tedarikçi başlangıç değeri; kaliteye özel doğrulanmış tablo değildir."),
+    "Tungsten karbür (WC / sert metal)": (40.0, "Tedarikçinin 30–50 mm²/dk aralığının ortası. Bağlayıcı oranı ve tezgâha göre büyük fark olabilir."),
+    "Pirinç": (None, "ELCUT 234 deneyinin 5–80 mm kalınlık bağıntısı; tezgâhınıza göre kalibre edilmelidir."),
+    "Alüminyum": (200.0, "İmalat hizmeti sağlayıcısının rehberindeki 60 mm alüminyum için 200–220 mm²/dk aralığının alt sınırı."),
+    "Krom / Paslanmaz çelik": (120.0, "İmalat hizmeti sağlayıcısının rehberindeki 40 mm paslanmaz için 120–140 mm²/dk aralığının alt sınırı; 304/316 ayrı doğrulanmamıştır."),
+}
+
+
+def edm_reference_rate(material, thickness):
+  if material not in EDM_MATERIALS or not math.isfinite(thickness) or thickness <= 0:
+    raise ValueError("Geçerli malzeme ve kalınlık girin.")
+  if material == "Pirinç":
+    if not 5 <= thickness <= 80:
+      return None
+    # Rao & Sarcar (2009), Cs [mm/min], T [mm], experimental fit.
+    feed = 1.0356 + 22542.18 / (1 + math.exp((thickness + 101.54) / 13.06))
+    return feed * thickness
+  if not 5 <= thickness <= 100:
+    return None
+  return EDM_MATERIALS[material][0]
+
+
+def calculate_edm(length, thickness, quantity, area_rate, skim_count,
+                  skim_time_ratio, time_allowance, setup_minutes,
+                  handling_minutes, hourly_rate, extra_cost):
+  inputs = (length, thickness, quantity, area_rate, skim_count, skim_time_ratio,
+            time_allowance, setup_minutes, handling_minutes, hourly_rate, extra_cost)
+  if not all(math.isfinite(float(v)) for v in inputs):
+    raise ValueError("Sayılar sonlu olmalıdır.")
+  if min(length, thickness, area_rate) <= 0 or quantity < 1 or int(quantity) != quantity:
+    raise ValueError("Kesim yolu, kalınlık, hız ve adet sıfırdan büyük olmalıdır.")
+  if int(skim_count) != skim_count or not 0 <= skim_count <= 6:
+    raise ValueError("Finiş paso sayısı 0–6 olmalıdır.")
+  if min(skim_time_ratio, time_allowance, setup_minutes, handling_minutes, hourly_rate, extra_cost) < 0:
+    raise ValueError("Negatif değer kullanılamaz.")
+  area = length * thickness
+  rough = area / area_rate
+  skim = rough * skim_time_ratio * skim_count
+  net = (rough + skim) * quantity
+  reserve = net * time_allowance / 100
+  fixed = setup_minutes + handling_minutes * quantity
+  total = net + reserve + fixed
+  # ±%40 hız senaryosu: istatistiksel güven aralığı değildir.
+  lower = (net + reserve) / 1.4 + fixed
+  upper = (net + reserve) / 0.6 + fixed
+  return dict(area=area, feed=area_rate / thickness, rough=rough, skim=skim,
+              net=net, reserve=reserve, fixed=fixed, total=total,
+              lower=lower, upper=upper,
+              cost=total / 60 * hourly_rate + extra_cost,
+              cost_lower=lower / 60 * hourly_rate + extra_cost,
+              cost_upper=upper / 60 * hourly_rate + extra_cost)
+
+
+def edm_duration(minutes):
+  rounded = max(1, math.ceil(minutes)) if minutes > 0 else 0
+  hours, mins = divmod(rounded, 60)
+  return f"{hours} sa {mins} dk" if hours else f"{mins} dk"
+
+
 # ---------------------------------------------------------
 # SOL MENÜ & LOGO & YEDEKLEME & GERİ YÜKLEME
 # ---------------------------------------------------------
@@ -884,6 +950,7 @@ menu = st.sidebar.radio(
         "🌊 Su Jeti (WJG) Takip",
         "📚 İmalat Hafızası (Arşiv)",
         "💰 Akıllı Maliyet Hesabı",
+        "⚡ Tel Erezyon Maliyet Hesabı",
         "💬 Atölye Sohbeti",
     ],
 )
@@ -2267,6 +2334,117 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
 # ---------------------------------------------------------
 # 7. ATÖLYE SOHBETİ
 # ---------------------------------------------------------
+elif menu == "⚡ Tel Erezyon Maliyet Hesabı":
+  st.markdown("## ⚡ Tel Erezyon Maliyet Hesabı")
+  st.caption("Kesim yolunu ve parça bilgilerini girin; yaklaşık süreyi ve işleme maliyetini görün.")
+  edm_machine = st.selectbox("Tezgâh", ["FANUC ROBOCUT α-1iD (2009)", "FANUC ROBOCUT α-C400iB"], key="edm_machine")
+  st.caption("Kullanılan tel: EDM Teknik EW • Ø0,25 mm • Her iki tezgâhta aynı tel.")
+  st.info("Yaklaşık planlama hesabı: su içinde düz kesim ve iyi yıkama varsayılır. "
+          "EW telin alaşım/kaplaması doğrulanmadı; başlangıç hesabı pirinç tel referanslarına dayanır. "
+          "Bu iki FANUC için doğrulanmış hız tablosu bulunmadığından model seçimi otomatik hız farkı uygulamaz.")
+  left, right = st.columns(2)
+  with left:
+    edm_material = st.selectbox("Malzeme cinsi", list(EDM_MATERIALS), key="edm_material")
+    edm_grade = st.text_input("Malzeme kalitesi / kodu (isteğe bağlı)", key="edm_grade",
+                             placeholder="Ör: 1.2379, 1.2738, Sulubant, AISI 304, AISI 316")
+    edm_length = st.number_input("Bir parçanın toplam kesim yolu (mm)", min_value=0.1,
+                                 value=100.0, step=10.0, key="edm_length",
+                                 help="Tüm konturları ve malzeme içindeki giriş yolunu bir kez toplayın. Finiş pasolarını tekrar eklemeyin.")
+    edm_height = st.number_input("Parça kalınlığı / kesim yüksekliği (mm)", min_value=0.1,
+                                 max_value=500.0, value=30.0, step=1.0, key="edm_height")
+    edm_quantity = st.number_input("Parça adedi (ayrı ayrı kesilecek)", min_value=1,
+                                  max_value=100000, value=1, step=1, key="edm_quantity")
+  with right:
+    edm_mode = st.radio("Kesim tercihi", ["Hızlı — 1 kaba paso", "Hassas — kaba + finiş pasoları"],
+                        key="edm_mode")
+    edm_skims = 0
+    if edm_mode.startswith("Hassas"):
+      edm_skims = st.number_input("Finiş paso sayısı", min_value=1, max_value=6,
+                                  value=2, step=1, key="edm_skims")
+      st.caption("Hassas seçim varsayılan olarak 1 kaba + 2 finiş pasosudur. Belirli bir tolerans veya yüzey kalitesi garantisi değildir.")
+    edm_hourly = st.number_input("Tezgâh saatlik maliyeti (₺/saat)", min_value=0.0,
+                                 value=0.0, step=100.0, key=f"edm_hourly_{edm_machine}",
+                                 help="Tel, elektrik, işçilik ve genel giderler dahil saatlik maliyetinizi yazın.")
+    edm_setup = st.number_input("İşin tamamı için hazırlık süresi (dk)", min_value=0.0,
+                                value=15.0, step=5.0, key="edm_setup")
+    edm_allowance = st.number_input("Kesim süresine eklenecek pay (%)", min_value=0.0,
+                                    max_value=200.0, value=15.0, step=5.0, key="edm_allowance",
+                                    help="Kısa duruşlar, köşeler ve yıkama farklılıkları için seçtiğiniz planlama payı.")
+  reference = edm_reference_rate(edm_material, edm_height)
+  with st.expander("⚙️ Tezgâha göre ayarla / ek giderler", expanded=reference is None):
+    st.caption(EDM_MATERIALS[edm_material][1])
+    manual = st.checkbox("Tezgâhımdan bildiğim kaba kesim hızını kullan", key="edm_manual")
+    manual_feed = st.number_input("Bilinen kaba kesim ilerlemesi (mm/dk)", min_value=0.001,
+                                  value=2.0, step=0.1, format="%.3f", key=f"edm_manual_feed_{edm_machine}_{edm_material}_{edm_height}",
+                                  disabled=not manual,
+                                  help="Aynı malzeme, kalınlık ve tel için ölçülen ilerleme. Tel makarasının m/dk hızı değildir.")
+    skim_ratio = st.number_input("Bir finiş pasosu / kaba paso süre oranı", min_value=0.05,
+                                 max_value=5.0, value=0.50, step=0.05, key="edm_skim_ratio",
+                                 disabled=edm_skims == 0,
+                                 help="0,50: her finiş pasosu kaba pasonun yarısı kadar sürer. Bu bir planlama varsayımıdır; tezgâhınıza göre değiştirin.")
+    handling = st.number_input("Parça başına ek bağlama / tel geçirme süresi (dk)",
+                               min_value=0.0, value=0.0, step=1.0, key="edm_handling")
+    extra = st.number_input("İşin tamamı için ek gider (₺)", min_value=0.0, value=0.0,
+                            step=50.0, key="edm_extra",
+                            help="Saat ücretine dahil etmediğiniz giderler. Dahil olan tel/elektrik giderini tekrar eklemeyin.")
+    st.caption("Bu ekrandaki girişler hesaplama içindir; kalıcı bir teklif kaydı oluşturmaz.")
+  area_rate = manual_feed * edm_height if manual else reference
+  if area_rate is None:
+    st.warning("Bu kalınlık için otomatik tahmin sınırının dışındasınız. "
+               "Tezgâhınızdan bildiğiniz kaba kesim hızını yukarıdan girin. "
+               "Pirinç araştırması 5–80 mm; diğer malzemeler için geçici model sınırı 5–100 mm'dir.")
+  else:
+    result = calculate_edm(edm_length, edm_height, edm_quantity, area_rate, edm_skims,
+                           skim_ratio, edm_allowance, edm_setup, handling, edm_hourly, extra)
+    st.divider()
+    st.markdown("### Tahmini süre ve maliyet")
+    a, b, c = st.columns(3)
+    a.metric("Toplam planlanan süre", edm_duration(result['total']))
+    b.metric("Kaba kesim ilerlemesi", f"{result['feed']:.2f} mm/dk")
+    c.metric("Toplam işleme maliyeti", f"{result['cost']:,.2f} ₺" if edm_hourly > 0 else "Saat ücreti girin")
+    st.caption(f"Süre senaryosu: {edm_duration(result['lower'])} – {edm_duration(result['upper'])}. "
+               "Hızın tahminden %40 yüksek/düşük olmasıyla hesaplanır; güven aralığı veya garanti değildir.")
+    if edm_hourly > 0:
+      st.caption(f"Parça başına: {result['cost'] / edm_quantity:,.2f} ₺ • "
+                 f"Maliyet senaryosu: {result['cost_lower']:,.2f} – {result['cost_upper']:,.2f} ₺ • Kâr ve KDV dahil değil.")
+    st.dataframe(pd.DataFrame([
+        {"Süre kalemi": "Kaba kesim — tüm parçalar", "Dakika": round(result['rough'] * edm_quantity, 1)},
+        {"Süre kalemi": f"Finiş — parça başına {edm_skims} paso", "Dakika": round(result['skim'] * edm_quantity, 1)},
+        {"Süre kalemi": "Kesim süresi payı", "Dakika": round(result['reserve'], 1)},
+        {"Süre kalemi": "Hazırlık + ek bağlama / tel geçirme", "Dakika": round(result['fixed'], 1)},
+        {"Süre kalemi": "TOPLAM", "Dakika": round(result['total'], 1)},
+    ]), hide_index=True, use_container_width=True)
+    if not manual:
+      st.caption("Kaynaklar farklı tezgâhlara aittir. Çelik, karbür, alüminyum ve paslanmazda "
+                 "alan kesme hızı sabit kabul edilip kalınlığa bölünür; bu, doğrulanmış bir kalınlık tablosu değildir. "
+                 "Malzeme kodu not olarak tutulur; farklı kodlara kanıtsız ayrı hız verilmez.")
+    st.caption("Üst üste kesimde toplam paket kalınlığını ve paket adedini kullanın. "
+               "Konik kesim, çok küçük köşeler, kötü yıkama ve tel kopmaları süreyi bu aralığın dışına taşıyabilir.")
+  with st.expander("📖 Araştırma kaynakları ve hesap esasları"):
+    st.markdown("[FANUC α-CiB üretici kataloğu](https://www.fanuc.com/fin/id/product/catalog/RCUT-CiB(E)-07.pdf)")
+    st.write("FANUC kataloğu Ø0,25 mm pirinç telle 25/75 mm kalıp çeliğinde üç pasolu örnek verir; "
+             "tüm malzemeleri kapsayan ilerleme tablosu vermez. α-1iD ile α-C400iB arasında "
+             "kanıtsız hız katsayısı uygulanmamıştır. Hassas seçimi yüzey/tolerans taahhüdü değildir.")
+    st.markdown("**Başlangıç değerleri — farklı tezgâhlar ve genel rehberler; FANUC teknoloji tablosu değildir:**")
+    st.dataframe(pd.DataFrame([
+        {"Malzeme": "Çelik", "Kaynak": "Lemhunter", "Referans": "50 mm: yaklaşık 100 mm²/dk", "Model": "100 mm²/dk; kalite farkı tanımlanmadı"},
+        {"Malzeme": "Tungsten karbür", "Kaynak": "Lemhunter", "Referans": "30–50 mm²/dk; kalınlık belirtilmemiş", "Model": "40 mm²/dk; düşük güvenli başlangıç"},
+        {"Malzeme": "Alüminyum", "Kaynak": "MHAOCNC", "Referans": "60 mm: 200–220 mm²/dk", "Model": "200 mm²/dk"},
+        {"Malzeme": "Paslanmaz", "Kaynak": "MHAOCNC", "Referans": "40 mm: 120–140 mm²/dk", "Model": "120 mm²/dk; 304/316 ortak ön tahmin"},
+        {"Malzeme": "Pirinç", "Kaynak": "Rao & Sarcar, 2009", "Referans": "ELCUT 234; Ø0,25 mm tel; 5–80 mm", "Model": "Yayımlanmış kalınlık–ilerleme bağıntısı"},
+    ]), hide_index=True, use_container_width=True)
+    st.markdown("[Lemhunter — çelik ve karbür başlangıç değerleri](https://m.lemhunter.com/news/understanding-wire-edm-costs-and-machining-time/)  \n"
+                "[MHAOCNC — malzeme, kalınlık ve süre hesabı](https://www.mhaocnc.com/How-To-Calculate-Wire-Edm-Machining-Time-id49158555.html)  \n"
+                "[Rao & Sarcar — pirinç kesim deneyleri, 2009](https://www.researchgate.net/publication/242128421_Evaluation_of_optimal_parameters_for_machining_brass_with_wire_cut_EDM)  \n"
+                "[Electronica Ecocut — 50 mm çelikte Ø0,25 mm düz pirinç tel ile 60 mm²/dk azami hız örneği](https://electronicagroup.com/products/wire-edm/ecocut/)")
+    st.write("Temel hesap: kaba süre = kesim yolu × kalınlık ÷ alan kesme hızı. "
+             "Hassas kesimde her finiş pasosunun süresi ayrıca eklenir. "
+             "Varsayılan 0,50 finiş oranı, %15 süre payı ve ±%40 hız senaryosu kaynak standardı değil, "
+             "değiştirilebilir planlama kabulleridir. Saat maliyeti hazırlık süresine de uygulanır.")
+    st.caption("Pirinç bağıntısı: v = 1,0356 + 22542,18 / (1 + exp((H + 101,54) / 13,06)); "
+               "H: mm, v: mm/dk. Tel sarım hızı ile kesim ilerlemesi farklıdır. Araştırma: 25.09.2026.")
+
+
 elif menu == "💬 Atölye Sohbeti":
   st.markdown("## 💬 Atölye İçi Anlık Mesajlaşma")
   st.caption(
