@@ -775,6 +775,24 @@ def create_zip_archive(paths, names):
   return zip_buffer.getvalue()
 
 
+@st.dialog("📥 Dosya indir")
+def show_drawing_download(paths, names, zip_name, download_key):
+  # Only invoked by the explicit download request; no reads on page render.
+  with st.spinner("Dosya hazırlanıyor…"):
+    if len(paths) == 1:
+      payload = read_drawing(paths[0])
+      filename = names[0]
+      mime = "application/octet-stream"
+    else:
+      payload = create_zip_archive(paths, names)
+      filename = zip_name
+      mime = "application/zip"
+  st.download_button(
+      "📥 Dosyayı indir", payload, file_name=filename, mime=mime,
+      key=download_key, on_click="ignore", use_container_width=True,
+  )
+
+
 STATUS_OPTIONS = [
     "MALZEME SİPARİŞİ VERİLDİ",
     "DİK İŞLEME SIRADA",
@@ -1358,28 +1376,10 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                       n for p, n in zip(paths, names) if drawing_exists(p)
                   ]
   
-                  if len(valid_paths) == 1:
-                    with io.BytesIO(read_drawing(valid_paths[0])) as f_bytes:
-                      st.download_button(
-                          "📥",
-                          f_bytes.read(),
-                          file_name=valid_names[0],
-                          key=f"dl_{j_id}",
-                          help=f"İndir ({valid_names[0]})",
-                      )
-                  else:
-                    zip_bytes = create_zip_archive(valid_paths, valid_names)
-                    zip_file_name = f"{row['job_name']}_dosyalar.zip"
-                    st.download_button(
-                        "📥",
-                        zip_bytes,
-                        file_name=zip_file_name,
-                        mime="application/zip",
-                        key=f"dl_{j_id}",
-                        help=(
-                            f"Tüm {len(valid_paths)} dosyayı ZIP olarak indir"
-                        ),
-                    )
+                  if st.button("📥", key=f"dl_{j_id}", help="Teknik resim / dosyaları indir"):
+                    show_drawing_download(valid_paths, valid_names,
+                                          f"{row['job_name']}_dosyalar.zip", f"file_download_{j_id}")
+
                 else:
                   if st.button("📥", key=f"nodl_{j_id}", help="Yüklü dosya yok"):
                     st.toast(
@@ -2118,24 +2118,9 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         valid_names = [n for p, n in zip(paths, names) if drawing_exists(p)]
 
         if valid_paths:
-          if len(valid_paths) == 1:
-            with io.BytesIO(read_drawing(valid_paths[0])) as f_bytes:
-              st.download_button(
-                  f"📥 Teknik Resim İndir ({valid_names[0]})",
-                  f_bytes.read(),
-                  file_name=valid_names[0],
-                  key=f"arch_dl_{arch_id}",
-              )
-          else:
-            zip_bytes = create_zip_archive(valid_paths, valid_names)
-            st.download_button(
-                "📥 Tüm Teknik Resimleri ZIP Olarak İndir"
-                f" ({len(valid_paths)} Dosya)",
-                zip_bytes,
-                file_name=f"{r['job_name']}_arhiv_dosyalar.zip",
-                mime="application/zip",
-                key=f"arch_dl_{arch_id}",
-            )
+          if st.button("📥 Teknik Resim / Dosyaları İndir", key=f"arch_dl_{arch_id}"):
+            show_drawing_download(valid_paths, valid_names,
+                                  f"{r['job_name']}_arsiv_dosyalar.zip", f"archive_download_{arch_id}")
 
         col_b1, col_b2 = st.columns([1, 1])
         with col_b1:
