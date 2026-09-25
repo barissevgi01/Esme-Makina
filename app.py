@@ -933,6 +933,36 @@ def edm_duration(minutes):
   return f"{hours} sa {mins} dk" if hours else f"{mins} dk"
 
 
+# Mobile layout uses the request's browser identity; desktop stays on its existing layout.
+try:
+  _device_agent = st.context.headers.get("User-Agent", "").lower()
+except (AttributeError, RuntimeError):
+  _device_agent = ""
+mobile_view = any(token in _device_agent for token in
+                  ("android", "iphone", "ipad", "ipod", "mobile", "tablet", "silk/", "kindle"))
+mobile_view = mobile_view or str(st.query_params.get("view", "")).lower() == "mobile"
+if mobile_view:
+  st.markdown("""<style>
+    [data-testid="stMainBlockContainer"], .main .block-container {
+      padding: 3.5rem 0.7rem 1rem !important; max-width: 100% !important;
+    }
+    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+      min-width: min(260px, 100%) !important; flex: 1 1 260px !important;
+    }
+    [class*="st-key-mobile_job_"] { padding: 12px !important; margin-bottom: 12px !important; }
+    input, textarea, [data-baseweb="select"] { font-size: 16px !important; }
+    [data-baseweb="input"], [data-baseweb="select"] > div { min-height: 44px !important; }
+    .stButton button, [data-testid="stDownloadButton"] button,
+    [data-testid="stPopoverButton"] { min-height: 44px !important; }
+    h1 { font-size: 1.5rem !important; } h2 { font-size: 1.25rem !important; }
+    [class*="st-key-mobile_actions_"] [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; }
+    [class*="st-key-mobile_actions_"] [data-testid="stColumn"] {
+      min-width: 0 !important; flex: 1 1 0 !important;
+    }
+    [class*="st-key-mobile_actions_"] button { width: 100% !important; height: 44px !important; }
+  </style>""", unsafe_allow_html=True)
+
 # ---------------------------------------------------------
 # SOL MENÜ & LOGO & YEDEKLEME & GERİ YÜKLEME
 # ---------------------------------------------------------
@@ -1019,6 +1049,8 @@ st.divider()
 # 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET
 # ---------------------------------------------------------
 if menu == "📊 İş Planı (Canlı Tablo)":
+  if mobile_view:
+    st.caption("📱 Telefon / Tablet görünümü • İşleri aşağıdaki kartlardan düzenleyebilirsiniz.")
   st.markdown("## 📊 İŞ PLANI")
   st.caption(
       "Aktif müşteri siparişleri ve canlı imalat durumları. Yapılan tüm"
@@ -1148,44 +1180,54 @@ if menu == "📊 İş Planı (Canlı Tablo)":
 
       col_widths = [1.4, 0.9, 0.9, 0.6, 0.4, 0.9, 1.2, 0.9, 0.7, 1.3, 0.8]
 
-      with st.container(key=f"job_header_{str(customer).replace(' ', '_')}"):
-        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(col_widths)
-        with h1:
-          st.caption("**İŞ / PARÇA ADI**")
-        with h2:
-          st.caption("**MALZEME**")
-        with h3:
-          st.caption("**TEDARİKÇİ**")
-        with h4:
-          st.caption("**ÖLÇÜ**")
-        with h5:
-          st.caption("**ADET**")
-        with h6:
-          st.caption("**ISIL İŞLEM**")
-        with h7:
-          st.caption("**DURUM**")
-        with h8:
-          st.caption("**TEZGAH**")
-        with h9:
-          st.caption("**TERMİN**")
-        with h10:
-          st.caption("**NOT**")
-        with h11:
-          st.caption("**İŞLEM**")
+      if not mobile_view:
+        with st.container(key=f"job_header_{str(customer).replace(' ', '_')}"):
+          h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(col_widths)
+          with h1:
+            st.caption("**İŞ / PARÇA ADI**")
+          with h2:
+            st.caption("**MALZEME**")
+          with h3:
+            st.caption("**TEDARİKÇİ**")
+          with h4:
+            st.caption("**ÖLÇÜ**")
+          with h5:
+            st.caption("**ADET**")
+          with h6:
+            st.caption("**ISIL İŞLEM**")
+          with h7:
+            st.caption("**DURUM**")
+          with h8:
+            st.caption("**TEZGAH**")
+          with h9:
+            st.caption("**TERMİN**")
+          with h10:
+            st.caption("**NOT**")
+          with h11:
+            st.caption("**İŞLEM**")
 
       with st.container(key=f"job_table_{str(customer)}"):
         for _, row in cust_df.iterrows():
           j_id = int(row["id"])
   
-          with st.container(key=f"job_row_{j_id}"):
-            c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
+          with st.container(key=f"mobile_job_{j_id}" if mobile_view else f"job_row_{j_id}", border=mobile_view):
+            if mobile_view:
+              c1 = st.container()
+              c2, c3 = st.columns(2)
+              c4, c5 = st.columns(2)
+              c6, c7 = st.columns(2)
+              c8, c9 = st.columns(2)
+              c10 = st.container()
+              c11 = st.container(key=f"mobile_actions_{j_id}")
+            else:
+              c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
   
             with c1:
               new_job = st.text_input(
                   "İş Adı",
                   value=row["job_name"],
                   key=f"job_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
               )
             with c2:
               new_mat = st.text_input(
@@ -1193,7 +1235,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   value=row["material"],
                   max_chars=20,
                   key=f"mat_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
                   placeholder="Malzeme",
               )
             with c3:
@@ -1201,7 +1243,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   "Tedarikçi",
                   value=row["supplier"],
                   key=f"supp_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
                   placeholder="Atlas, Altek vb.",
               )
             with c4:
@@ -1210,7 +1252,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   value=row["dimensions"],
                   max_chars=15,
                   key=f"dim_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
                   placeholder="Ölçü",
               )
             with c5:
@@ -1219,14 +1261,14 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   value=int(row["quantity"]),
                   min_value=1,
                   key=f"qty_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
               )
             with c6:
               new_heat = st.text_input(
                   "Isıl İşlem",
                   value=row["heat_treatment"],
                   key=f"heat_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
                   placeholder="Sertlik/Kaplama",
               )
             with c7:
@@ -1240,7 +1282,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   STATUS_OPTIONS,
                   index=idx_st,
                   key=f"st_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
               )
             with c8:
               idx_m = (
@@ -1253,14 +1295,14 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   MACHINE_OPTIONS,
                   index=idx_m,
                   key=f"mac_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
               )
             with c9:
               new_ddl = st.text_input(
                   "Termin",
                   value=row["deadline"],
                   key=f"ddl_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
                   placeholder="STOK / Tarih",
               )
             with c10:
@@ -1268,7 +1310,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                   "Not",
                   value=row["notes"],
                   key=f"note_{j_id}",
-                  label_visibility="collapsed",
+                  label_visibility="visible" if mobile_view else "collapsed",
                   placeholder="Not",
               )
   
@@ -1287,7 +1329,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                       type=None,
                       accept_multiple_files=True,
                       key=f"up_{j_id}",
-                      label_visibility="collapsed",
+                      label_visibility="visible" if mobile_view else "collapsed",
                   )
                   if up_files:
                     new_paths, new_names = [], []
