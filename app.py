@@ -305,10 +305,10 @@ st.markdown(
 
 
     /* =========================================================
-       RESPONSIVE TASARIM - TELEFON / TABLET / PC
-       Genel kolonlar cihaz genişliğine göre yeniden düzenlenir.
-       İş planı satırları ise okunabilirliğini korumak için
-       yatay kaydırılabilir kompakt tablo olarak kalır.
+       GÜVENLİ RESPONSIVE TASARIM - TELEFON / TABLET / PC
+       Streamlit'in kendi kolon/flex hesaplamasına müdahale edilmez.
+       Bu özellikle mobilde "hata oluştu / yeniden bağlanıyor" sorunlarını
+       önlemek için önemlidir.
        ========================================================= */
 
     /* Tablet */
@@ -319,91 +319,37 @@ st.markdown(
             padding-right: 0.75rem !important;
         }
 
-        /* Formlar ve kartlar 2 kolonlu düzene geçsin */
-        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]) {
-            flex-wrap: wrap !important;
-            gap: 0.65rem !important;
+        .custom-card {
+            padding: 14px !important;
         }
 
-        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]) > div[data-testid="stColumn"] {
-            min-width: 300px !important;
-            flex: 1 1 45% !important;
-        }
-
-        /* İş planı masaüstü mantığını korur; gerekirse yatay kaydırılır */
-        [class*="st-key-job_row_"] {
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch !important;
-        }
-
-        [class*="st-key-job_row_"] > div {
-            min-width: 1040px !important;
+        .firm-header-band {
+            padding: 7px 10px !important;
         }
     }
 
     /* Telefon */
     @media only screen and (max-width: 768px) {
         .main .block-container {
+            width: 100% !important;
             max-width: 100% !important;
             padding: 0.5rem 0.55rem 1rem 0.55rem !important;
-        }
-
-        /* Mobilde ana başlık alanı alt alta */
-        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]):not([class*="st-key-job_header_"]) {
-            flex-direction: column !important;
-            gap: 0.35rem !important;
-        }
-
-        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]):not([class*="st-key-job_header_"]) > div[data-testid="stColumn"] {
-            width: 100% !important;
-            min-width: 100% !important;
-            flex: 1 1 100% !important;
-        }
-
-        /* Mobilde iş planı kolon başlıklarını gizle */
-        [class*="st-key-job_header_"] {
-            display: none !important;
-        }
-
-        /* İş planı: kartı yatay kaydırılabilir tut */
-        [class*="st-key-job_row_"] {
-            width: 100% !important;
-            max-width: 100% !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            -webkit-overflow-scrolling: touch !important;
-            scrollbar-width: thin;
-            padding: 3px !important;
-            margin-bottom: 3px !important;
             box-sizing: border-box !important;
         }
 
-        [class*="st-key-job_row_"] > div {
-            min-width: 1040px !important;
-            width: 1040px !important;
+        /* Streamlit'in native kolon/flex yapısını BOZMAYIN.
+           Mobilde bunları column'a zorlamak bazı sürümlerde frontend
+           render/reconnect sorunlarına yol açabilir. */
+        [data-testid="stHorizontalBlock"] {
+            max-width: 100% !important;
         }
 
-        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap !important;
-            flex-direction: row !important;
-            width: 1030px !important;
-            min-width: 1030px !important;
-            gap: 0.18rem !important;
-        }
+        /* Ana başlık */
+        h1 { font-size: 1.35rem !important; }
+        h2 { font-size: 1.15rem !important; }
+        h3 { font-size: 1rem !important; }
 
-        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
-            flex-shrink: 0 !important;
-        }
-
-        /* Satır içindeki 3 işlem butonu yan yana kalsın */
-        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            width: 100% !important;
-            min-width: 0 !important;
-        }
-
-        /* Mobilde firma başlığı */
+        /* Firma başlığı */
         .firm-header-band {
             font-size: 0.78rem !important;
             padding: 6px 8px !important;
@@ -416,18 +362,15 @@ st.markdown(
             padding: 2px 6px !important;
         }
 
-        /* Mobil başlıklar */
-        h1 { font-size: 1.35rem !important; }
-        h2 { font-size: 1.15rem !important; }
-        h3 { font-size: 1rem !important; }
-
         /* Kartlar */
         .custom-card {
+            width: 100% !important;
+            box-sizing: border-box !important;
             padding: 12px !important;
             margin-bottom: 8px !important;
         }
 
-        /* Form elemanları parmakla rahat kullanılacak yükseklikte */
+        /* Form alanları: okunabilir ve dokunulabilir */
         .stTextInput input,
         .stNumberInput input,
         .stTextArea textarea {
@@ -440,18 +383,38 @@ st.markdown(
             min-height: 38px !important;
         }
 
-        /* Data editor: küçük ekranda yatay kaydırma */
-        [data-testid="stDataEditor"] {
+        /* İş planı satırı: sadece dış kutu yatay kaydırılır.
+           İçerideki Streamlit kolonlarının flex yapısı değiştirilmez. */
+        [class*="st-key-job_row_"] {
+            width: 100% !important;
             max-width: 100% !important;
             overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin;
+            box-sizing: border-box !important;
         }
 
-        /* Progress / metric gibi elemanlarda taşma olmasın */
+        [class*="st-key-job_row_"] > div {
+            min-width: 1040px !important;
+        }
+
+        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] {
+            min-width: 1030px !important;
+            flex-wrap: nowrap !important;
+        }
+
+        /* Data editor */
+        [data-testid="stDataEditor"] {
+            max-width: 100% !important;
+        }
+
+        /* Metrikler */
         [data-testid="stMetricValue"] {
             font-size: 1.25rem !important;
         }
 
-        /* Sidebar mobilde tam genişliği kaplamasın */
+        /* Sidebar: yalnızca genişlik ayarı; iç flex yapısına dokunulmaz */
         [data-testid="stSidebar"] {
             width: min(86vw, 340px) !important;
         }
@@ -472,7 +435,6 @@ st.markdown(
             font-size: 0.82rem !important;
         }
     }
-
 </style>
 """,
     unsafe_allow_html=True,
