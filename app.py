@@ -438,6 +438,39 @@ st.markdown(
             font-size: 0.82rem !important;
         }
     }
+
+    /* Bu revizyon yalnızca iş satırları ve sol menü Excel düğmesine uygulanır. */
+    [class*="st-key-job_table_"] { gap: 3px !important; }
+    [class*="st-key-job_row_"] { margin: 0 !important; padding: 1px 3px !important; }
+    [class*="st-key-job_row_"] [data-testid="stVerticalBlock"] { gap: 0 !important; }
+    [class*="st-key-job_row_"] [data-testid="stButton"] button,
+    [class*="st-key-job_row_"] [data-testid="stDownloadButton"] button,
+    [class*="st-key-job_row_"] [data-testid="stDownloadButton"] a,
+    [class*="st-key-job_row_"] [data-testid="stPopover"] button[data-testid="stPopoverButton"] {
+        box-sizing: border-box !important;
+        width: 100% !important; min-width: 0 !important;
+        height: 28px !important; min-height: 28px !important; max-height: 28px !important;
+        padding: 0 !important; display: flex !important;
+        align-items: center !important; justify-content: center !important;
+    }
+    [class*="st-key-job_row_"] [data-testid="stPopoverButton"] > div {
+        justify-content: center !important; gap: 0 !important;
+    }
+    [class*="st-key-job_row_"] [data-testid="stPopoverButton"] svg { display: none !important; }
+    [data-testid="stSidebar"] .st-key-excel_backup_button button,
+    [data-testid="stSidebar"] .st-key-excel_backup_button a {
+        background: rgba(255,255,255,0.03) !important;
+        color: #f1f5f9 !important; border: 1px solid rgba(255,255,255,0.10) !important;
+        border-radius: 10px !important; min-height: 40px !important;
+    }
+    [data-testid="stSidebar"] .st-key-excel_backup_button button p,
+    [data-testid="stSidebar"] .st-key-excel_backup_button a p { color: #f1f5f9 !important; }
+    [data-testid="stSidebar"] .st-key-excel_backup_button button:hover,
+    [data-testid="stSidebar"] .st-key-excel_backup_button a:hover {
+        background: rgba(255,255,255,0.07) !important; color: #ffffff !important;
+        border-color: rgba(255,255,255,0.15) !important;
+    }
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -862,6 +895,7 @@ backup_filename = f"Esme_Makina_Yedek_{get_now().strftime('%Y%m%d_%H%M')}.xlsx"
 
 st.sidebar.download_button(
     label="📊 Tüm Verileri Excel'e Aktar",
+    key="excel_backup_button",
     data=excel_backup,
     file_name=backup_filename,
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1003,6 +1037,28 @@ if menu == "📊 İş Planı (Canlı Tablo)":
         "YOK / ATANMADI"
     )
 
+    col_search, col_filter = st.columns([2, 1])
+    with col_search:
+      search_query = st.text_input(
+          "🔍 İş Planında Arama Yap (Parça Adı, Müşteri, Malzeme)",
+          placeholder="Ör: OKP4746, PHILSA...", key="job_search")
+    with col_filter:
+      cust_filter = st.selectbox(
+          "Müşteri Filtresi", ["TÜMÜ"] + sorted(df_active["customer"].dropna().unique().tolist()),
+          key="job_customer_filter")
+    if search_query.strip():
+      q = search_query.strip().translate(str.maketrans("İI", "ii")).casefold()
+      mask = pd.Series(False, index=df_active.index)
+      for field in ("job_name", "customer", "material"):
+        values = df_active[field].fillna("").astype(str).str.translate(str.maketrans("İI", "ii")).str.casefold()
+        mask |= values.str.contains(q, regex=False, na=False)
+      df_active = df_active[mask]
+    if cust_filter != "TÜMÜ":
+      df_active = df_active[df_active["customer"] == cust_filter]
+    st.caption(f"Bulunan iş: {len(df_active)} adet")
+    if df_active.empty:
+      st.info("Aramanıza uygun iş bulunamadı. Aramayı veya müşteri filtresini değiştirin.")
+
     customers = df_active["customer"].unique()
 
     for customer in customers:
@@ -1045,268 +1101,269 @@ if menu == "📊 İş Planı (Canlı Tablo)":
         with h11:
           st.caption("**İŞLEM**")
 
-      for _, row in cust_df.iterrows():
-        j_id = int(row["id"])
-
-        with st.container(key=f"job_row_{j_id}"):
-          c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
-
-          with c1:
-            new_job = st.text_input(
-                "İş Adı",
-                value=row["job_name"],
-                key=f"job_{j_id}",
-                label_visibility="collapsed",
-            )
-          with c2:
-            new_mat = st.text_input(
-                "Malzeme",
-                value=row["material"],
-                max_chars=20,
-                key=f"mat_{j_id}",
-                label_visibility="collapsed",
-                placeholder="Malzeme",
-            )
-          with c3:
-            new_supp = st.text_input(
-                "Tedarikçi",
-                value=row["supplier"],
-                key=f"supp_{j_id}",
-                label_visibility="collapsed",
-                placeholder="Atlas, Altek vb.",
-            )
-          with c4:
-            new_dim = st.text_input(
-                "Ölçü",
-                value=row["dimensions"],
-                max_chars=15,
-                key=f"dim_{j_id}",
-                label_visibility="collapsed",
-                placeholder="Ölçü",
-            )
-          with c5:
-            new_qty = st.number_input(
-                "Adet",
-                value=int(row["quantity"]),
-                min_value=1,
-                key=f"qty_{j_id}",
-                label_visibility="collapsed",
-            )
-          with c6:
-            new_heat = st.text_input(
-                "Isıl İşlem",
-                value=row["heat_treatment"],
-                key=f"heat_{j_id}",
-                label_visibility="collapsed",
-                placeholder="Sertlik/Kaplama",
-            )
-          with c7:
-            idx_st = (
-                STATUS_OPTIONS.index(row["status"])
-                if row["status"] in STATUS_OPTIONS
-                else 0
-            )
-            new_st = st.selectbox(
-                "Durum",
-                STATUS_OPTIONS,
-                index=idx_st,
-                key=f"st_{j_id}",
-                label_visibility="collapsed",
-            )
-          with c8:
-            idx_m = (
-                MACHINE_OPTIONS.index(row["machine_name"])
-                if row["machine_name"] in MACHINE_OPTIONS
-                else 0
-            )
-            new_mac = st.selectbox(
-                "Tezgah",
-                MACHINE_OPTIONS,
-                index=idx_m,
-                key=f"mac_{j_id}",
-                label_visibility="collapsed",
-            )
-          with c9:
-            new_ddl = st.text_input(
-                "Termin",
-                value=row["deadline"],
-                key=f"ddl_{j_id}",
-                label_visibility="collapsed",
-                placeholder="STOK / Tarih",
-            )
-          with c10:
-            new_note = st.text_input(
-                "Not",
-                value=row["notes"],
-                key=f"note_{j_id}",
-                label_visibility="collapsed",
-                placeholder="Not",
-            )
-
-          with c11:
-            paths, names = parse_drawing_files(
-                row["drawing_path"], row["drawing_name"]
-            )
-            has_files = len(paths) > 0 and any(drawing_exists(p) for p in paths)
-
-            ic1, ic2, ic3 = st.columns(3)
-
-            with ic1:
-              with st.popover("📤", help="Teknik Resim / Dosyalar Yükle"):
-                up_files = st.file_uploader(
-                    "Dosyaları Seçin",
-                    type=None,
-                    accept_multiple_files=True,
-                    key=f"up_{j_id}",
-                    label_visibility="collapsed",
-                )
-                if up_files:
-                  new_paths, new_names = [], []
-                  with get_db_connection() as conn:
-                    for up_file in up_files:
-                      orig_name = Path(up_file.name).name
-                      s_path = "db:" + uuid4().hex
-                      conn.execute("INSERT INTO drawing_files(path,name,content) VALUES (%s,%s,%s)",
-                                   (s_path, orig_name, up_file.getvalue()))
-                      new_paths.append(s_path)
-                      new_names.append(orig_name)
-                    path_json, name_json = format_drawing_files(new_paths, new_names)
-                    conn.execute("UPDATE work_orders SET drawing_path=%s, drawing_name=%s WHERE id=%s",
-                                 (path_json, name_json, int(j_id)))
-                  st.toast(
-                      f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢"
+      with st.container(key=f"job_table_{str(customer)}"):
+        for _, row in cust_df.iterrows():
+          j_id = int(row["id"])
+  
+          with st.container(key=f"job_row_{j_id}"):
+            c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 = st.columns(col_widths)
+  
+            with c1:
+              new_job = st.text_input(
+                  "İş Adı",
+                  value=row["job_name"],
+                  key=f"job_{j_id}",
+                  label_visibility="collapsed",
+              )
+            with c2:
+              new_mat = st.text_input(
+                  "Malzeme",
+                  value=row["material"],
+                  max_chars=20,
+                  key=f"mat_{j_id}",
+                  label_visibility="collapsed",
+                  placeholder="Malzeme",
+              )
+            with c3:
+              new_supp = st.text_input(
+                  "Tedarikçi",
+                  value=row["supplier"],
+                  key=f"supp_{j_id}",
+                  label_visibility="collapsed",
+                  placeholder="Atlas, Altek vb.",
+              )
+            with c4:
+              new_dim = st.text_input(
+                  "Ölçü",
+                  value=row["dimensions"],
+                  max_chars=15,
+                  key=f"dim_{j_id}",
+                  label_visibility="collapsed",
+                  placeholder="Ölçü",
+              )
+            with c5:
+              new_qty = st.number_input(
+                  "Adet",
+                  value=int(row["quantity"]),
+                  min_value=1,
+                  key=f"qty_{j_id}",
+                  label_visibility="collapsed",
+              )
+            with c6:
+              new_heat = st.text_input(
+                  "Isıl İşlem",
+                  value=row["heat_treatment"],
+                  key=f"heat_{j_id}",
+                  label_visibility="collapsed",
+                  placeholder="Sertlik/Kaplama",
+              )
+            with c7:
+              idx_st = (
+                  STATUS_OPTIONS.index(row["status"])
+                  if row["status"] in STATUS_OPTIONS
+                  else 0
+              )
+              new_st = st.selectbox(
+                  "Durum",
+                  STATUS_OPTIONS,
+                  index=idx_st,
+                  key=f"st_{j_id}",
+                  label_visibility="collapsed",
+              )
+            with c8:
+              idx_m = (
+                  MACHINE_OPTIONS.index(row["machine_name"])
+                  if row["machine_name"] in MACHINE_OPTIONS
+                  else 0
+              )
+              new_mac = st.selectbox(
+                  "Tezgah",
+                  MACHINE_OPTIONS,
+                  index=idx_m,
+                  key=f"mac_{j_id}",
+                  label_visibility="collapsed",
+              )
+            with c9:
+              new_ddl = st.text_input(
+                  "Termin",
+                  value=row["deadline"],
+                  key=f"ddl_{j_id}",
+                  label_visibility="collapsed",
+                  placeholder="STOK / Tarih",
+              )
+            with c10:
+              new_note = st.text_input(
+                  "Not",
+                  value=row["notes"],
+                  key=f"note_{j_id}",
+                  label_visibility="collapsed",
+                  placeholder="Not",
+              )
+  
+            with c11:
+              paths, names = parse_drawing_files(
+                  row["drawing_path"], row["drawing_name"]
+              )
+              has_files = len(paths) > 0 and any(drawing_exists(p) for p in paths)
+  
+              ic1, ic2, ic3 = st.columns(3)
+  
+              with ic1:
+                with st.popover("📤", help="Teknik Resim / Dosyalar Yükle"):
+                  up_files = st.file_uploader(
+                      "Dosyaları Seçin",
+                      type=None,
+                      accept_multiple_files=True,
+                      key=f"up_{j_id}",
+                      label_visibility="collapsed",
                   )
-                  st.rerun()
-
-            with ic2:
-              if has_files:
-                valid_paths = [p for p in paths if drawing_exists(p)]
-                valid_names = [
-                    n for p, n in zip(paths, names) if drawing_exists(p)
-                ]
-
-                if len(valid_paths) == 1:
-                  with io.BytesIO(read_drawing(valid_paths[0])) as f_bytes:
+                  if up_files:
+                    new_paths, new_names = [], []
+                    with get_db_connection() as conn:
+                      for up_file in up_files:
+                        orig_name = Path(up_file.name).name
+                        s_path = "db:" + uuid4().hex
+                        conn.execute("INSERT INTO drawing_files(path,name,content) VALUES (%s,%s,%s)",
+                                     (s_path, orig_name, up_file.getvalue()))
+                        new_paths.append(s_path)
+                        new_names.append(orig_name)
+                      path_json, name_json = format_drawing_files(new_paths, new_names)
+                      conn.execute("UPDATE work_orders SET drawing_path=%s, drawing_name=%s WHERE id=%s",
+                                   (path_json, name_json, int(j_id)))
+                    st.toast(
+                        f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢"
+                    )
+                    st.rerun()
+  
+              with ic2:
+                if has_files:
+                  valid_paths = [p for p in paths if drawing_exists(p)]
+                  valid_names = [
+                      n for p, n in zip(paths, names) if drawing_exists(p)
+                  ]
+  
+                  if len(valid_paths) == 1:
+                    with io.BytesIO(read_drawing(valid_paths[0])) as f_bytes:
+                      st.download_button(
+                          "📥",
+                          f_bytes.read(),
+                          file_name=valid_names[0],
+                          key=f"dl_{j_id}",
+                          help=f"İndir ({valid_names[0]})",
+                      )
+                  else:
+                    zip_bytes = create_zip_archive(valid_paths, valid_names)
+                    zip_file_name = f"{row['job_name']}_dosyalar.zip"
                     st.download_button(
                         "📥",
-                        f_bytes.read(),
-                        file_name=valid_names[0],
+                        zip_bytes,
+                        file_name=zip_file_name,
+                        mime="application/zip",
                         key=f"dl_{j_id}",
-                        help=f"İndir ({valid_names[0]})",
+                        help=(
+                            f"Tüm {len(valid_paths)} dosyayı ZIP olarak indir"
+                        ),
                     )
                 else:
-                  zip_bytes = create_zip_archive(valid_paths, valid_names)
-                  zip_file_name = f"{row['job_name']}_dosyalar.zip"
-                  st.download_button(
-                      "📥",
-                      zip_bytes,
-                      file_name=zip_file_name,
-                      mime="application/zip",
-                      key=f"dl_{j_id}",
-                      help=(
-                          f"Tüm {len(valid_paths)} dosyayı ZIP olarak indir"
-                      ),
+                  if st.button("📥", key=f"nodl_{j_id}", help="Yüklü dosya yok"):
+                    st.toast(
+                        "Bu iş için yüklü teknik resim/dosya bulunmuyor.", icon="ℹ️"
+                    )
+  
+              with ic3:
+                if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
+                  conn = get_db_connection()
+                  conn.execute("DELETE FROM work_orders WHERE id = %s", (j_id,))
+                  conn.commit()
+                  conn.close()
+                  st.toast("İş silindi!", icon="🗑️")
+                  st.rerun()
+  
+  
+  
+          if (
+              new_job != row["job_name"]
+              or new_mat != row["material"]
+              or new_supp != row["supplier"]
+              or new_dim != row["dimensions"]
+              or new_qty != row["quantity"]
+              or new_heat != row["heat_treatment"]
+              or new_st != row["status"]
+              or new_mac != row["machine_name"]
+              or new_ddl != row["deadline"]
+              or new_note != row["notes"]
+          ):
+  
+            conn = get_db_connection()
+            if new_st == "HAZIR":
+              end_now_dt = get_now()
+              end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
+              duration_calc_str = "Belirtilmedi"
+              if row["start_time"]:
+                start_dt = parse_date(row["start_time"])
+                if start_dt:
+                  diff = end_now_dt - start_dt
+                  days = diff.days
+                  hours, remainder = divmod(diff.seconds, 3600)
+                  minutes, _ = divmod(remainder, 60)
+                  duration_calc_str = (
+                      f"{days} Gün {hours} Saat {minutes} Dk"
+                      if days > 0
+                      else f"{hours} Saat {minutes} Dk"
                   )
-              else:
-                if st.button("📥", key=f"nodl_{j_id}", help="Yüklü dosya yok"):
-                  st.toast(
-                      "Bu iş için yüklü teknik resim/dosya bulunmuyor.", icon="ℹ️"
-                  )
-
-            with ic3:
-              if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
-                conn = get_db_connection()
-                conn.execute("DELETE FROM work_orders WHERE id = %s", (j_id,))
-                conn.commit()
-                conn.close()
-                st.toast("İş silindi!", icon="🗑️")
-                st.rerun()
-
-
-
-        if (
-            new_job != row["job_name"]
-            or new_mat != row["material"]
-            or new_supp != row["supplier"]
-            or new_dim != row["dimensions"]
-            or new_qty != row["quantity"]
-            or new_heat != row["heat_treatment"]
-            or new_st != row["status"]
-            or new_mac != row["machine_name"]
-            or new_ddl != row["deadline"]
-            or new_note != row["notes"]
-        ):
-
-          conn = get_db_connection()
-          if new_st == "HAZIR":
-            end_now_dt = get_now()
-            end_now_str = end_now_dt.strftime("%d.%m.%Y %H:%M")
-            duration_calc_str = "Belirtilmedi"
-            if row["start_time"]:
-              start_dt = parse_date(row["start_time"])
-              if start_dt:
-                diff = end_now_dt - start_dt
-                days = diff.days
-                hours, remainder = divmod(diff.seconds, 3600)
-                minutes, _ = divmod(remainder, 60)
-                duration_calc_str = (
-                    f"{days} Gün {hours} Saat {minutes} Dk"
-                    if days > 0
-                    else f"{hours} Saat {minutes} Dk"
-                )
-
-            conn.execute(
-                """
-                            UPDATE work_orders 
-                            SET job_name=%s, material=%s, supplier=%s, dimensions=%s, quantity=%s, heat_treatment=%s, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=%s, notes=%s, is_archived=1, end_time=%s, duration_str=%s
-                            WHERE id=%s
-                        """,
-                (
-                    new_job,
-                    new_mat,
-                    new_supp,
-                    new_dim,
-                    new_qty,
-                    new_heat,
-                    new_ddl,
-                    new_note,
-                    end_now_str,
-                    duration_calc_str,
-                    j_id,
-                ),
-            )
-            conn.commit()
-            conn.close()
-            st.toast(
-                "🎉 Parça 'HAZIR' durumuna getirildi ve arşive aktarıldı!",
-                icon="🎉",
-            )
-            st.rerun()
-          else:
-            conn.execute(
-                """
-                            UPDATE work_orders
-                            SET job_name=%s, material=%s, supplier=%s, dimensions=%s, quantity=%s, heat_treatment=%s, status=%s, machine_name=%s, deadline=%s, notes=%s
-                            WHERE id=%s
-                        """,
-                (
-                    new_job,
-                    new_mat,
-                    new_supp,
-                    new_dim,
-                    new_qty,
-                    new_heat,
-                    new_st,
-                    new_mac,
-                    new_ddl,
-                    new_note,
-                    j_id,
-                ),
-            )
-            conn.commit()
-            conn.close()
-            st.toast("Değişiklikler otomatik kaydedildi", icon="💾")
-            st.rerun()
+  
+              conn.execute(
+                  """
+                              UPDATE work_orders 
+                              SET job_name=%s, material=%s, supplier=%s, dimensions=%s, quantity=%s, heat_treatment=%s, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=%s, notes=%s, is_archived=1, end_time=%s, duration_str=%s
+                              WHERE id=%s
+                          """,
+                  (
+                      new_job,
+                      new_mat,
+                      new_supp,
+                      new_dim,
+                      new_qty,
+                      new_heat,
+                      new_ddl,
+                      new_note,
+                      end_now_str,
+                      duration_calc_str,
+                      j_id,
+                  ),
+              )
+              conn.commit()
+              conn.close()
+              st.toast(
+                  "🎉 Parça 'HAZIR' durumuna getirildi ve arşive aktarıldı!",
+                  icon="🎉",
+              )
+              st.rerun()
+            else:
+              conn.execute(
+                  """
+                              UPDATE work_orders
+                              SET job_name=%s, material=%s, supplier=%s, dimensions=%s, quantity=%s, heat_treatment=%s, status=%s, machine_name=%s, deadline=%s, notes=%s
+                              WHERE id=%s
+                          """,
+                  (
+                      new_job,
+                      new_mat,
+                      new_supp,
+                      new_dim,
+                      new_qty,
+                      new_heat,
+                      new_st,
+                      new_mac,
+                      new_ddl,
+                      new_note,
+                      j_id,
+                  ),
+              )
+              conn.commit()
+              conn.close()
+              st.toast("Değişiklikler otomatik kaydedildi", icon="💾")
+              st.rerun()
 
   else:
     st.info(
@@ -1344,13 +1401,14 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
         conn_time = (
             r["start_time"] or r["created_at"] or "Tarih Belirtilmedi"
         )
-        assigned_jobs[m_name] = {
+        assigned_jobs.setdefault(m_name, []).append({
             "text": f"🏢 **{r['customer']}** - {r['job_name']}",
             "time": conn_time,
-        }
+        })
 
   total_machines = 12
-  busy_count = len(assigned_jobs)
+  known_machines = {m for group in MACHINES.values() for m in group}
+  busy_count = len(known_machines.intersection(assigned_jobs))
   occupancy_rate = int((busy_count / total_machines) * 100)
 
   m1, m2, m3 = st.columns(3)
@@ -1370,8 +1428,10 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
     for m in MACHINES["CNC Dik İşleme"]:
       if m in assigned_jobs:
         st.markdown(f"**{m}**: 🔴 **ÇALIŞIYOR**")
-        st.caption(f"Bağlı İş: {assigned_jobs[m]['text']}")
-        st.caption(f"🕒 **Bağlanma Zamanı:** {assigned_jobs[m]['time']}")
+        st.caption(f"Bağlı iş sayısı: {len(assigned_jobs[m])}")
+        for job in assigned_jobs[m]:
+          st.caption(f"Bağlı İş: {job['text']}")
+          st.caption(f"🕒 **Bağlanma Zamanı:** {job['time']}")
       else:
         st.markdown(f"**{m}**: 🟢 **BOŞ / HAZIR**")
       st.write("---")
@@ -1385,8 +1445,10 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
     for m in MACHINES["CNC Torna"]:
       if m in assigned_jobs:
         st.markdown(f"**{m}**: 🔴 **ÇALIŞIYOR**")
-        st.caption(f"Bağlı İş: {assigned_jobs[m]['text']}")
-        st.caption(f"🕒 **Bağlanma Zamanı:** {assigned_jobs[m]['time']}")
+        st.caption(f"Bağlı iş sayısı: {len(assigned_jobs[m])}")
+        for job in assigned_jobs[m]:
+          st.caption(f"Bağlı İş: {job['text']}")
+          st.caption(f"🕒 **Bağlanma Zamanı:** {job['time']}")
       else:
         st.markdown(f"**{m}**: 🟢 **BOŞ / HAZIR**")
       st.write("---")
@@ -1400,8 +1462,10 @@ elif menu == "🛠️ Tezgah Parkı Durumu":
     for m in MACHINES["Tel Erezyon"]:
       if m in assigned_jobs:
         st.markdown(f"**{m}**: 🔴 **ÇALIŞIYOR**")
-        st.caption(f"Bağlı İş: {assigned_jobs[m]['text']}")
-        st.caption(f"🕒 **Bağlanma Zamanı:** {assigned_jobs[m]['time']}")
+        st.caption(f"Bağlı iş sayısı: {len(assigned_jobs[m])}")
+        for job in assigned_jobs[m]:
+          st.caption(f"Bağlı İş: {job['text']}")
+          st.caption(f"🕒 **Bağlanma Zamanı:** {job['time']}")
       else:
         st.markdown(f"**{m}**: 🟢 **BOŞ / HAZIR**")
       st.write("---")
