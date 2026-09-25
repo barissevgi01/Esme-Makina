@@ -886,12 +886,14 @@ def edm_reference_rate(material, thickness):
   if material not in EDM_MATERIALS or not math.isfinite(thickness) or thickness <= 0:
     raise ValueError("Geçerli malzeme ve kalınlık girin.")
   if material == "Pirinç":
-    if not 5 <= thickness <= 80:
+    if thickness < 5:
       return None
+    # Above the research range, use the last area-rate point as an explicit estimate.
+    thickness = min(thickness, 80.0)
     # Rao & Sarcar (2009), Cs [mm/min], T [mm], experimental fit.
     feed = 1.0356 + 22542.18 / (1 + math.exp((thickness + 101.54) / 13.06))
     return feed * thickness
-  if not 5 <= thickness <= 100:
+  if thickness < 5:
     return None
   return EDM_MATERIALS[material][0]
 
@@ -1178,7 +1180,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
           unsafe_allow_html=True,
       )
 
-      col_widths = [1.4, 0.9, 0.9, 0.6, 0.4, 0.9, 1.2, 0.9, 0.7, 1.3, 0.8]
+      col_widths = [1.75, 0.9, 0.9, 0.6, 0.35, 0.9, 1.2, 0.9, 0.55, 1.5, 0.45]
 
       if not mobile_view:
         with st.container(key=f"job_header_{str(customer).replace(' ', '_')}"):
@@ -2348,10 +2350,10 @@ elif menu == "💰 Akıllı Maliyet Hesabı":
               " katılır."
           ),
       )
-      profit_margin = st.slider(
+      profit_margin = st.number_input(
           "Kâr Marjı (%)",
           min_value=0,
-          max_value=100,
+          step=1,
           value=30,
           key="cost_profit",
       )
@@ -2398,7 +2400,7 @@ elif menu == "⚡ Tel Erezyon Maliyet Hesabı":
                                  value=100.0, step=10.0, key="edm_length",
                                  help="Tüm konturları ve malzeme içindeki giriş yolunu bir kez toplayın. Finiş pasolarını tekrar eklemeyin.")
     edm_height = st.number_input("Parça kalınlığı / kesim yüksekliği (mm)", min_value=0.1,
-                                 max_value=500.0, value=30.0, step=1.0, key="edm_height")
+                                 value=30.0, step=1.0, key="edm_height")
     edm_quantity = st.number_input("Parça adedi (ayrı ayrı kesilecek)", min_value=1,
                                   max_value=100000, value=1, step=1, key="edm_quantity")
   with right:
@@ -2418,6 +2420,10 @@ elif menu == "⚡ Tel Erezyon Maliyet Hesabı":
                                     max_value=200.0, value=15.0, step=5.0, key="edm_allowance",
                                     help="Kısa duruşlar, köşeler ve yıkama farklılıkları için seçtiğiniz planlama payı.")
   reference = edm_reference_rate(edm_material, edm_height)
+  if edm_height > (80 if edm_material == "Pirinç" else 100):
+    st.warning("Bu yükseklik araştırma aralığının dışında. Süre, sabit alan kesme hızıyla "
+               "uzatılarak tahmin edilir; doğruluğu düşüktür. Varsa bu yükseklikte ölçtüğünüz hızı girin. "
+               "Bu hesap tezgâhın fiziksel kapasitesini doğrulamaz.")
   with st.expander("⚙️ Tezgâha göre ayarla / ek giderler", expanded=reference is None):
     st.caption(EDM_MATERIALS[edm_material][1])
     manual = st.checkbox("Tezgâhımdan bildiğim kaba kesim hızını kullan", key="edm_manual")
@@ -2439,7 +2445,7 @@ elif menu == "⚡ Tel Erezyon Maliyet Hesabı":
   if area_rate is None:
     st.warning("Bu kalınlık için otomatik tahmin sınırının dışındasınız. "
                "Tezgâhınızdan bildiğiniz kaba kesim hızını yukarıdan girin. "
-               "Pirinç araştırması 5–80 mm; diğer malzemeler için geçici model sınırı 5–100 mm'dir.")
+               "5 mm altındaki kalınlıklarda bilinen hız gereklidir.")
   else:
     result = calculate_edm(edm_length, edm_height, edm_quantity, area_rate, edm_skims,
                            skim_ratio, edm_allowance, edm_setup, handling, edm_hourly, extra)
@@ -2531,9 +2537,30 @@ elif menu == "💬 Atölye Sohbeti":
   st.subheader("📜 Son Mesajlar")
   if not df_chat.empty:
     for _, r in df_chat.iterrows():
-      st.markdown(
-          f"**👤 {r['user_name']}** ({r['created_at']}): {r['message']}"
-      )
+      message_id = int(r["id"])
+      with st.container(key=f"chat_message_{message_id}"):
+        body_col, edit_col, delete_col = st.columns([12, 1, 1])
+        with body_col:
+          st.markdown(f"**👤 {r['user_name']}** ({r['created_at']}): {r['message']}")
+        with edit_col:
+          with st.popover("✏️", help="Mesajı düzenle"):
+            with st.form(f"edit_chat_{message_id}"):
+              edited_message = st.text_area("Mesaj", value=str(r["message"]), key=f"chat_text_{message_id}")
+              if st.form_submit_button("Kaydet"):
+                if not edited_message.strip():
+                  st.warning("Mesaj boş bırakılamaz.")
+                else:
+                  with get_db_connection() as conn:
+                    conn.execute("UPDATE chat_messages SET message=%s WHERE id=%s",
+                                 (edited_message.strip(), message_id))
+                  st.rerun()
+        with delete_col:
+          with st.popover("🗑️", help="Mesajı sil"):
+            st.caption("Bu mesaj silinsin mi?")
+            if st.button("Mesajı sil", key=f"delete_chat_{message_id}"):
+              with get_db_connection() as conn:
+                conn.execute("DELETE FROM chat_messages WHERE id=%s", (message_id,))
+              st.rerun()
       st.divider()
   else:
     st.info("Henüz sohbet mesajı yok.")
