@@ -23,7 +23,7 @@ st.set_page_config(
     page_title="Eşme Makina MES - Üretim & Fason Yönetimi",
     page_icon="⚙️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 # Yüklemeler için klasör oluştur
@@ -302,6 +302,177 @@ st.markdown(
         box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12) !important;
         transform: translateY(-1px);
     }
+
+
+    /* =========================================================
+       RESPONSIVE TASARIM - TELEFON / TABLET / PC
+       Genel kolonlar cihaz genişliğine göre yeniden düzenlenir.
+       İş planı satırları ise okunabilirliğini korumak için
+       yatay kaydırılabilir kompakt tablo olarak kalır.
+       ========================================================= */
+
+    /* Tablet */
+    @media only screen and (min-width: 769px) and (max-width: 1200px) {
+        .main .block-container {
+            max-width: 100% !important;
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
+
+        /* Formlar ve kartlar 2 kolonlu düzene geçsin */
+        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]) {
+            flex-wrap: wrap !important;
+            gap: 0.65rem !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]) > div[data-testid="stColumn"] {
+            min-width: 300px !important;
+            flex: 1 1 45% !important;
+        }
+
+        /* İş planı masaüstü mantığını korur; gerekirse yatay kaydırılır */
+        [class*="st-key-job_row_"] {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        [class*="st-key-job_row_"] > div {
+            min-width: 1040px !important;
+        }
+    }
+
+    /* Telefon */
+    @media only screen and (max-width: 768px) {
+        .main .block-container {
+            max-width: 100% !important;
+            padding: 0.5rem 0.55rem 1rem 0.55rem !important;
+        }
+
+        /* Mobilde ana başlık alanı alt alta */
+        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]):not([class*="st-key-job_header_"]) {
+            flex-direction: column !important;
+            gap: 0.35rem !important;
+        }
+
+        [data-testid="stHorizontalBlock"]:not([class*="st-key-job_row_"]):not([class*="st-key-job_header_"]) > div[data-testid="stColumn"] {
+            width: 100% !important;
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        /* Mobilde iş planı kolon başlıklarını gizle */
+        [class*="st-key-job_header_"] {
+            display: none !important;
+        }
+
+        /* İş planı: kartı yatay kaydırılabilir tut */
+        [class*="st-key-job_row_"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin;
+            padding: 3px !important;
+            margin-bottom: 3px !important;
+            box-sizing: border-box !important;
+        }
+
+        [class*="st-key-job_row_"] > div {
+            min-width: 1040px !important;
+            width: 1040px !important;
+        }
+
+        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            flex-direction: row !important;
+            width: 1030px !important;
+            min-width: 1030px !important;
+            gap: 0.18rem !important;
+        }
+
+        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            flex-shrink: 0 !important;
+        }
+
+        /* Satır içindeki 3 işlem butonu yan yana kalsın */
+        [class*="st-key-job_row_"] div[data-testid="stHorizontalBlock"] div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        /* Mobilde firma başlığı */
+        .firm-header-band {
+            font-size: 0.78rem !important;
+            padding: 6px 8px !important;
+            margin-top: 6px !important;
+            margin-bottom: 3px !important;
+        }
+
+        .count-badge {
+            font-size: 0.68rem !important;
+            padding: 2px 6px !important;
+        }
+
+        /* Mobil başlıklar */
+        h1 { font-size: 1.35rem !important; }
+        h2 { font-size: 1.15rem !important; }
+        h3 { font-size: 1rem !important; }
+
+        /* Kartlar */
+        .custom-card {
+            padding: 12px !important;
+            margin-bottom: 8px !important;
+        }
+
+        /* Form elemanları parmakla rahat kullanılacak yükseklikte */
+        .stTextInput input,
+        .stNumberInput input,
+        .stTextArea textarea {
+            font-size: 14px !important;
+        }
+
+        .stButton > button,
+        div[data-testid="stDownloadButton"] > button,
+        div[data-testid="stPopover"] > button {
+            min-height: 38px !important;
+        }
+
+        /* Data editor: küçük ekranda yatay kaydırma */
+        [data-testid="stDataEditor"] {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+        }
+
+        /* Progress / metric gibi elemanlarda taşma olmasın */
+        [data-testid="stMetricValue"] {
+            font-size: 1.25rem !important;
+        }
+
+        /* Sidebar mobilde tam genişliği kaplamasın */
+        [data-testid="stSidebar"] {
+            width: min(86vw, 340px) !important;
+        }
+    }
+
+    /* Çok küçük telefonlar */
+    @media only screen and (max-width: 420px) {
+        .main .block-container {
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+        }
+
+        .firm-header-band {
+            font-size: 0.72rem !important;
+        }
+
+        .stButton > button {
+            font-size: 0.82rem !important;
+        }
+    }
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -809,29 +980,30 @@ if menu == "📊 İş Planı (Canlı Tablo)":
 
       col_widths = [1.4, 0.9, 0.9, 0.6, 0.4, 0.9, 1.2, 0.9, 0.7, 1.3, 0.8]
 
-      h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(col_widths)
-      with h1:
-        st.caption("**İŞ / PARÇA ADI**")
-      with h2:
-        st.caption("**MALZEME**")
-      with h3:
-        st.caption("**TEDARİKÇİ**")
-      with h4:
-        st.caption("**ÖLÇÜ**")
-      with h5:
-        st.caption("**ADET**")
-      with h6:
-        st.caption("**ISIL İŞLEM**")
-      with h7:
-        st.caption("**DURUM**")
-      with h8:
-        st.caption("**TEZGAH**")
-      with h9:
-        st.caption("**TERMİN**")
-      with h10:
-        st.caption("**NOT**")
-      with h11:
-        st.caption("**İŞLEM**")
+      with st.container(key=f"job_header_{str(customer).replace(' ', '_')}"):
+        h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = st.columns(col_widths)
+        with h1:
+          st.caption("**İŞ / PARÇA ADI**")
+        with h2:
+          st.caption("**MALZEME**")
+        with h3:
+          st.caption("**TEDARİKÇİ**")
+        with h4:
+          st.caption("**ÖLÇÜ**")
+        with h5:
+          st.caption("**ADET**")
+        with h6:
+          st.caption("**ISIL İŞLEM**")
+        with h7:
+          st.caption("**DURUM**")
+        with h8:
+          st.caption("**TEZGAH**")
+        with h9:
+          st.caption("**TERMİN**")
+        with h10:
+          st.caption("**NOT**")
+        with h11:
+          st.caption("**İŞLEM**")
 
       for _, row in cust_df.iterrows():
         j_id = int(row["id"])
