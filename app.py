@@ -1,4 +1,5 @@
 import io
+import time
 import json
 import math
 import os
@@ -11,6 +12,44 @@ from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 
+
+
+# Temporary, session-only performance diagnostics. No SQL, values or credentials stored.
+_perf_started = time.perf_counter()
+_perf_totals = {}
+_perf_counts = {}
+_perf_finished = False
+
+def _perf_call(category, func, *args, **kwargs):
+  # Separate writes from reads using only the SQL verb; never retain SQL text.
+  if category == "Sorgu" and args:
+    verb = str(args[0]).lstrip().split(None, 1)[0].upper() if str(args[0]).strip() else ""
+    category = "Veri yazma" if verb in ("UPDATE", "INSERT", "DELETE") else "Sorgu / okuma"
+  started = time.perf_counter()
+  try:
+    return func(*args, **kwargs)
+  finally:
+    _perf_totals[category] = _perf_totals.get(category, 0.0) + time.perf_counter() - started
+    _perf_counts[category] = _perf_counts.get(category, 0) + 1
+
+def _perf_finish(reason):
+  global _perf_finished
+  if _perf_finished:
+    return
+  _perf_finished = True
+  elapsed = time.perf_counter() - _perf_started
+  history = st.session_state.get("_perf_history", [])
+  record = {"Çalışma": (history[-1]["Çalışma"] + 1) if history else 1, "Sonuç": reason,
+            "Sunucu toplam (sn)": round(elapsed, 3)}
+  for category in ("Bağlantı", "Sorgu / okuma", "Sonuç okuma", "Veri yazma", "Kayıt onayı"):
+    record[category + " (sn)"] = round(_perf_totals.get(category, 0.0), 3)
+  record["Bağlantı adedi"] = _perf_counts.get("Bağlantı", 0)
+  record["Diğer sunucu işlemleri (sn)"] = round(max(0, elapsed - sum(_perf_totals.values())), 3)
+  st.session_state["_perf_history"] = (history + [record])[-20:]
+
+def _perf_rerun():
+  _perf_finish("Yeniden çalıştırma")
+  st.rerun()
 
 # ---------------------------------------------------------
 # SAAT AYARI (UTC+3 TÜRKİYE SAATİ İÇİN YARDIMCI FONKSİYON)
@@ -35,7 +74,7 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
     
     html, body, [class*="css"]  {
         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -471,6 +510,50 @@ st.markdown(
         border-color: rgba(255,255,255,0.15) !important;
     }
 
+    [data-testid="stMainBlockContainer"] { padding-top: 2.5rem; }
+    /* Atölye görünümü: hafif, açık renkli yönetim panosu. */
+    .stApp, [data-testid="stAppViewContainer"] { background: #f3f5f9 !important; color: #24334b; }
+    html, body, [class*="css"] { font-family: Arial, sans-serif !important; }
+    [data-testid="stSidebar"] { background: #ffffff !important; border-right: 1px solid #e3e9f2 !important; }
+    [data-testid="stSidebar"] * { color: #34445b !important; }
+    [data-testid="stSidebar"] details { background: #f7f9fc !important; border-color: #e3e9f2 !important; }
+    [data-testid="stSidebar"] summary { color: #34445b !important; }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label {
+      border-radius: 8px; padding: 8px 6px; margin: 1px 0; font-size: 0.88rem;
+    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+      background: #eaf2ff !important; border-left: 3px solid #3783e8;
+    }
+    [data-testid="stSidebar"] .st-key-excel_backup_button button,
+    [data-testid="stSidebar"] .st-key-excel_backup_button button p {
+      background: #eff7f4 !important; color: #25644c !important; border-color: #cce4d8 !important;
+    }
+    [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3 { color: #24334b; letter-spacing: -0.4px; }
+    [data-testid="stForm"], [data-testid="stExpander"] details {
+      background: #ffffff; border: 1px solid #e1e7f0 !important; border-radius: 12px !important;
+      box-shadow: 0 2px 6px rgba(32,54,87,0.025);
+    }
+    [data-testid="stMetric"] {
+      padding: 16px 18px; border-radius: 10px; background: #fff;
+      border: 1px solid #e0e8f2; border-top: 4px solid #3b8be8; min-height: 108px;
+    }
+    [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] { border-top-color: #9473da; background: #fbf9ff; }
+    [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] { border-top-color: #e8ad37; background: #fffdf6; }
+    [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] { border-top-color: #63ac71; background: #f7fcf8; }
+    [data-testid="stMetricValue"] { font-size: 1.7rem; color: #253b56; }
+    .firm-header-band { background: #e9eff8 !important; color: #30435c !important; box-shadow: none !important; border-left: 4px solid #438cde; }
+    .count-badge { background: #438cde !important; box-shadow: none !important; }
+    .custom-card { box-shadow: 0 2px 6px rgba(32,54,87,0.04) !important; }
+    [data-testid="stTabs"] [role="tablist"] { gap: 8px; background: #edf1f7; padding: 5px; border-radius: 10px; }
+    [data-testid="stTabs"] [role="tab"] { padding: 8px 12px; border-radius: 7px; }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] { background: white; color: #246ac0; }
+    button[kind="primary"] { background: #3282dd !important; border-color: #3282dd !important; color: white !important; }
+    @media (max-width:768px) {
+      [data-testid="stMetric"] { padding: 10px; min-height: 85px; }
+      [data-testid="stTabs"] [role="tablist"] { overflow-x:auto; flex-wrap:nowrap; }
+      [data-testid="stTabs"] [role="tab"] { flex-shrink:0; }
+    }
+
 </style>
 """,
     unsafe_allow_html=True,
@@ -483,7 +566,7 @@ st.markdown(
 def get_db_connection():
   try:
     cfg = st.secrets["database"]
-    return psycopg.connect(
+    return _perf_call("Bağlantı", psycopg.connect, 
         host=cfg["host"], port=int(cfg.get("port", 5432)),
         dbname=cfg.get("dbname", "postgres"), user=cfg["user"],
         password=cfg["password"], sslmode="require", connect_timeout=15,
@@ -499,18 +582,18 @@ def get_db_connection():
 
 def read_sql_query(query, conn, params=None):
   with conn.cursor() as cur:
-    cur.execute(query, params)
-    return pd.DataFrame(cur.fetchall(), columns=[c.name for c in cur.description])
+    _perf_call("Sorgu", cur.execute, query, params)
+    return pd.DataFrame(_perf_call("Sonuç okuma", cur.fetchall), columns=[c.name for c in cur.description])
 
 
 @st.cache_resource(show_spinner=False)
 def init_db():
   with get_db_connection() as conn:
     cursor = conn.cursor()
-    cursor.execute("SELECT pg_advisory_xact_lock(73519024)")
-    cursor.execute("CREATE SCHEMA IF NOT EXISTS esme_mes")
+    _perf_call("Sorgu", cursor.execute, "SELECT pg_advisory_xact_lock(73519024)")
+    _perf_call("Sorgu", cursor.execute, "CREATE SCHEMA IF NOT EXISTS esme_mes")
   
-    cursor.execute("""
+    _perf_call("Sorgu", cursor.execute, """
           CREATE TABLE IF NOT EXISTS work_orders (
               id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
               customer TEXT,
@@ -539,7 +622,7 @@ def init_db():
           )
       """)
   
-    cursor.execute("""
+    _perf_call("Sorgu", cursor.execute, """
           CREATE TABLE IF NOT EXISTS chat_messages (
               id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
               user_name TEXT,
@@ -548,7 +631,7 @@ def init_db():
           )
       """)
   
-    cursor.execute("""
+    _perf_call("Sorgu", cursor.execute, """
           CREATE TABLE IF NOT EXISTS heat_treatment (
               id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
               sent_date TEXT,
@@ -567,7 +650,7 @@ def init_db():
           )
       """)
   
-    cursor.execute("""
+    _perf_call("Sorgu", cursor.execute, """
           CREATE TABLE IF NOT EXISTS wjg_waterjet (
               id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
               sent_date TEXT,
@@ -585,9 +668,9 @@ def init_db():
           )
       """)
   
-    cursor.execute("""SELECT column_name FROM information_schema.columns
+    _perf_call("Sorgu", cursor.execute, """SELECT column_name FROM information_schema.columns
                       WHERE table_schema='esme_mes' AND table_name='work_orders'""")
-    cols = [row[0] for row in cursor.fetchall()]
+    cols = [row[0] for row in _perf_call("Sonuç okuma", cursor.fetchall)]
   
     columns_to_add = [
         ("supplier", "TEXT"),
@@ -604,18 +687,22 @@ def init_db():
         ("drawing_path", "TEXT"),
         ("drawing_name", "TEXT"),
         ("is_archived", "INTEGER DEFAULT 0"),
+        ("workflow_data", "TEXT DEFAULT '{}'"),
     ]
   
     for col_name, col_type in columns_to_add:
       if col_name not in cols:
-        cursor.execute(
+        _perf_call("Sorgu", cursor.execute, 
             f"ALTER TABLE work_orders ADD COLUMN {col_name} {col_type}"
         )
   
-    cursor.execute("""CREATE TABLE IF NOT EXISTS drawing_files (
+    _perf_call("Sorgu", cursor.execute, """CREATE TABLE IF NOT EXISTS drawing_files (
         path TEXT PRIMARY KEY, name TEXT NOT NULL, content BYTEA NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
-    cursor.execute("""CREATE TABLE IF NOT EXISTS restore_snapshots (
+    _perf_call("Sorgu", cursor.execute, """CREATE TABLE IF NOT EXISTS workshop_quotes (
+        id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+        payload TEXT NOT NULL, created_at TEXT, job_id BIGINT REFERENCES work_orders(id) ON DELETE SET NULL)""")
+    _perf_call("Sorgu", cursor.execute, """CREATE TABLE IF NOT EXISTS restore_snapshots (
         id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(), content BYTEA NOT NULL)""")
   
@@ -647,6 +734,7 @@ def export_all_to_excel():
       "SELECT * FROM chat_messages ORDER BY id DESC", conn
   )
 
+  df_quotes = read_sql_query("SELECT * FROM workshop_quotes ORDER BY id", conn)
   conn.close()
 
   with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -657,6 +745,7 @@ def export_all_to_excel():
     df_ht.to_excel(writer, sheet_name="Isıl İşlem Takip", index=False)
     df_wjg.to_excel(writer, sheet_name="Su Jeti (WJG) Takip", index=False)
     df_chat.to_excel(writer, sheet_name="Atölye Sohbeti", index=False)
+    df_quotes.to_excel(writer, sheet_name="Teklifler", index=False)
 
   return output.getvalue()
 
@@ -671,14 +760,22 @@ def restore_db_from_excel(uploaded_file):
         "chat_messages": ["Atölye Sohbeti"],
     }
     with pd.ExcelFile(uploaded_file) as xls:
+      if "Teklifler" in xls.sheet_names:
+        sheets["workshop_quotes"] = ["Teklifler"]
       required = [name for names in sheets.values() for name in names]
       if any(name not in xls.sheet_names for name in required):
         return False, "Tam program yedeğini seçin. Eksik sayfalı dosya yüklenmedi; mevcut kayıtlar korundu."
       frames = {table: pd.concat([pd.read_excel(xls, name) for name in names],
                                  ignore_index=True) for table, names in sheets.items()}
     with get_db_connection() as conn:
+      # Lock related tables even for a legacy workbook, to avoid losing new features.
+      _perf_call("Sorgu", conn.execute, "LOCK TABLE work_orders,workshop_quotes IN ACCESS EXCLUSIVE MODE")
+      if "workshop_quotes" not in frames or "workflow_data" not in frames["work_orders"].columns:
+        has_new = _perf_call("Sorgu", conn.execute, "SELECT EXISTS(SELECT 1 FROM workshop_quotes) OR EXISTS(SELECT 1 FROM work_orders WHERE COALESCE(workflow_data,'{}') NOT IN ('{}',''))").fetchone()[0]
+        if has_new:
+          return False, "Bu eski yedek yeni iş kartı/teklif bilgilerini içermiyor. Veri kaybını önlemek için güncel tam Excel yedeğini kullanın."
       for table in sorted(sheets):
-        conn.execute(sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE").format(sql.Identifier(table)))
+        _perf_call("Sorgu", conn.execute, sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE").format(sql.Identifier(table)))
       snapshot = io.BytesIO()
       with pd.ExcelWriter(snapshot, engine="openpyxl") as writer:
         for table, names in sheets.items():
@@ -688,14 +785,23 @@ def restore_db_from_excel(uploaded_file):
             previous[previous.is_archived == 1].to_excel(writer, sheet_name=names[1], index=False)
           else:
             previous.to_excel(writer, sheet_name=names[0], index=False)
-      conn.execute("INSERT INTO restore_snapshots(content) VALUES (%s)", (snapshot.getvalue(),))
+      _perf_call("Sorgu", conn.execute, "INSERT INTO restore_snapshots(content) VALUES (%s)", (snapshot.getvalue(),))
       for table, frame in frames.items():
-        schema = dict(conn.execute("""SELECT column_name, data_type FROM information_schema.columns
+        schema = dict(_perf_call("Sorgu", conn.execute, """SELECT column_name, data_type FROM information_schema.columns
           WHERE table_schema='esme_mes' AND table_name=%s""", (table,)).fetchall())
         if 'id' not in frame or any(c not in schema for c in frame.columns):
           raise ValueError("Yedek sütunları uyumsuz")
         if frame['id'].isna().any() or frame['id'].duplicated().any():
           raise ValueError("Geçersiz kayıt numaraları")
+        if table == "work_orders" and "workflow_data" in frame:
+          for item in frame["workflow_data"].dropna():
+            wf_load(item)
+        if table == "workshop_quotes":
+          for item in frame["payload"].dropna():
+            wf_load(item)
+          ids = set(frames["work_orders"]["id"].dropna().astype(int))
+          if any(int(x) not in ids for x in frame["job_id"].dropna()):
+            raise ValueError("Teklifin bağlı olduğu iş yedekte yok")
         values = []
         for row in frame.itertuples(index=False, name=None):
           converted = []
@@ -712,7 +818,7 @@ def restore_db_from_excel(uploaded_file):
               value = str(value)
             converted.append(value)
           values.append(converted)
-        conn.execute(sql.SQL("DELETE FROM {}").format(sql.Identifier(table)))
+        _perf_call("Sorgu", conn.execute, sql.SQL("DELETE FROM {}").format(sql.Identifier(table)))
         if values:
           statement = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
               sql.Identifier(table), sql.SQL(',').join(map(sql.Identifier, frame.columns)),
@@ -721,7 +827,7 @@ def restore_db_from_excel(uploaded_file):
             cur.executemany(statement, values)
         # RESTART işlemi geri alınabilir; geri yükleme sonrası yeni numara çakışmaz.
         next_id = int(frame['id'].max()) + 1 if len(frame) else 1
-        conn.execute(sql.SQL("ALTER TABLE {} ALTER COLUMN id RESTART WITH {}").format(
+        _perf_call("Sorgu", conn.execute, sql.SQL("ALTER TABLE {} ALTER COLUMN id RESTART WITH {}").format(
             sql.Identifier(table), sql.Literal(max(1, next_id))))
     return True, "Yedek kalıcı sisteme yüklendi. Önceki kayıtların güvenlik kopyası da saklandı."
   except Exception:
@@ -734,7 +840,7 @@ def drawing_exists(path):
 
 def read_drawing(path):
   with get_db_connection() as conn:
-    row = conn.execute("SELECT content FROM drawing_files WHERE path=%s", (path,)).fetchone()
+    row = _perf_call("Sorgu", conn.execute, "SELECT content FROM drawing_files WHERE path=%s", (path,)).fetchone()
   if row is None:
     raise FileNotFoundError("Teknik resim bulunamadı")
   return bytes(row[0])
@@ -742,7 +848,7 @@ def read_drawing(path):
 
 def refresh_drawing_index():
   with get_db_connection() as conn:
-    st.session_state["_drawing_paths"] = {r[0] for r in conn.execute("SELECT path FROM drawing_files").fetchall()}
+    st.session_state["_drawing_paths"] = {r[0] for r in _perf_call("Sorgu", conn.execute, "SELECT path FROM drawing_files").fetchall()}
 
 
 refresh_drawing_index()
@@ -984,6 +1090,393 @@ if mobile_view:
   </style>""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
+# ÖZEL İŞ ATÖLYESİ: İŞ KARTI, TEKLİF VE TESLİM AKIŞLARI
+# ---------------------------------------------------------
+WF_STATES = ["Sırada", "Devam ediyor", "Tamamlandı", "Dış işlemde"]
+WF_BLOCKERS = ["Yok", "Malzeme bekliyor", "Müşteri onayı bekliyor", "Ölçü / çizim bekliyor", "Dış işlem bekliyor"]
+
+
+def wf_load(raw):
+  if raw is None or raw == "" or (isinstance(raw, float) and pd.isna(raw)):
+    return {}
+  data = json.loads(raw) if isinstance(raw, str) else raw
+  if not isinstance(data, dict):
+    raise ValueError("İş kartı verisi okunamadı; kayıt değiştirilmedi.")
+  return data
+
+
+def wf_dump(data):
+  return json.dumps(data, ensure_ascii=False, allow_nan=False)
+
+
+def wf_query(query, params=None):
+  with get_db_connection() as conn:
+    return read_sql_query(query, conn, params)
+
+
+def wf_execute(query, params=None):
+  with get_db_connection() as conn:
+    result = _perf_call("Sorgu", conn.execute, query, params)
+    _perf_call("Kayıt onayı", conn.commit)
+    return result.rowcount
+
+
+def wf_save(job_id, raw, data):
+  count = wf_execute("UPDATE work_orders SET workflow_data=%s WHERE id=%s AND COALESCE(workflow_data,'{}')=%s",
+                     (wf_dump(data), int(job_id), raw or "{}"))
+  if count != 1:
+    st.error("Bu iş başka bir ekranda değişti veya silindi. Sayfayı yenileyip tekrar deneyin; değişikliğiniz kaydedilmedi.")
+    return False
+  return True
+
+
+def wf_number(value):
+  result = float(value or 0)
+  if not math.isfinite(result) or result < 0:
+    raise ValueError("Süre ve tutarlar negatif veya geçersiz olamaz.")
+  return result
+
+
+def wf_cost(data):
+  stages = data.get("stages", [])
+  planned = sum(wf_number(x.get("planned_min")) * wf_number(x.get("hourly")) / 60 for x in stages)
+  actual = sum(wf_number(x.get("actual_min")) * wf_number(x.get("hourly")) / 60 for x in stages)
+  return (planned + wf_number(data.get("material_plan")) + wf_number(data.get("external_plan")),
+          actual + wf_number(data.get("material_actual")) + wf_number(data.get("external_actual")))
+
+
+def wf_clone(source_id, customer, name, deadline):
+  # Copy only specification and plan; completion, payments and actual times start empty.
+  with get_db_connection() as conn:
+    rows = read_sql_query("SELECT * FROM work_orders WHERE id=%s FOR SHARE", conn, (int(source_id),))
+    if rows.empty:
+      raise ValueError("Kaynak iş bulunamadı.")
+    source = rows.iloc[0]
+    old = wf_load(source.get("workflow_data"))
+    stages = [{**x, "actual_min": 0.0, "state": "Sırada"} for x in old.get("stages", [])]
+    new = {"stages": stages, "source_job": int(source_id), "reference_price": (0.0 if pd.isna(source.get("price")) else float(source.get("price") or 0)),
+           "reference_actual_minutes": sum(0.0 if pd.isna(source.get(c)) else float(source.get(c) or 0) for c in ("dik_time", "torna_time", "tel_time", "uni_time")),
+           "material_plan": old.get("material_plan", 0), "external_plan": old.get("external_plan", 0),
+           "drawing_note": "Benzer işten kopyalandı; üretim öncesi çizim revizyonunu kontrol edin."}
+    now = get_now().strftime("%d.%m.%Y %H:%M")
+    result = _perf_call("Sorgu", conn.execute, """INSERT INTO work_orders
+      (customer,job_name,material,dimensions,supplier,quantity,heat_treatment,status,machine_name,deadline,notes,
+       start_time,created_at,is_archived,price,drawing_path,drawing_name,workflow_data)
+      VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,0,0,%s,%s,%s) RETURNING id""",
+      (customer.strip().upper(), name.strip(), source.get("material"), source.get("dimensions"), source.get("supplier"),
+       int(source.get("quantity") or 1), source.get("heat_treatment"), STATUS_OPTIONS[0], "YOK / ATANMADI",
+       deadline.strip(), source.get("notes"), now, now, source.get("drawing_path"), source.get("drawing_name"), wf_dump(new)))
+    new_id = result.fetchone()[0]
+    _perf_call("Kayıt onayı", conn.commit)
+  return new_id
+
+
+def wf_accept_quote(quote_id):
+  with get_db_connection() as conn:
+    row = _perf_call("Sorgu", conn.execute, "SELECT payload,job_id FROM workshop_quotes WHERE id=%s FOR UPDATE", (int(quote_id),)).fetchone()
+    if row is None:
+      raise ValueError("Teklif bulunamadı.")
+    if row[1] is not None:
+      return int(row[1])
+    q = wf_load(row[0])
+    if q.get("state") != "Onaylandı":
+      raise ValueError("Önce teklif durumunu Onaylandı olarak kaydedin.")
+    now = get_now().strftime("%d.%m.%Y %H:%M")
+    workflow = {"quote_id": int(quote_id), "stages": [dict(name=x.strip(),state="Sırada",planned_min=0,actual_min=0,hourly=0)
+                 for x in q.get("route", "").splitlines() if x.strip()]}
+    result = _perf_call("Sorgu", conn.execute, """INSERT INTO work_orders
+      (customer,job_name,material,dimensions,quantity,status,machine_name,deadline,notes,start_time,created_at,is_archived,price,workflow_data)
+      VALUES (%s,%s,%s,%s,%s,%s,'YOK / ATANMADI',%s,%s,%s,%s,0,%s,%s) RETURNING id""",
+      (q["customer"], q["name"], q.get("material",""), q.get("dimensions",""), int(q.get("quantity",1)),
+       STATUS_OPTIONS[0], q.get("deadline",""), q.get("notes",""), now, now, wf_number(q.get("price")), wf_dump(workflow)))
+    job_id = int(result.fetchone()[0])
+    _perf_call("Sorgu", conn.execute, "UPDATE workshop_quotes SET job_id=%s WHERE id=%s", (job_id,int(quote_id)))
+    _perf_call("Kayıt onayı", conn.commit)
+    return job_id
+
+
+def wf_ledger(jobs):
+  records = []
+  for _, row in jobs.iterrows():
+    d = wf_load(row.get("workflow_data"))
+    price = wf_number(row.get("price") if pd.notna(row.get("price")) else 0)
+    paid = wf_number(d.get("paid"))
+    stages = d.get("stages", [])
+    next_stage = next((x.get("name", "") for x in stages if x.get("state") != "Tamamlandı"), "Tamamlandı" if stages else "Plan girilmedi")
+    records.append({"İş No": int(row.id), "Müşteri": row.customer, "İş": row.job_name,
+                    "Sonraki işlem": next_stage, "Bekleme": d.get("blocker","Yok"), "Bekleme notu": d.get("block_note",""),
+                    "Termin": row.deadline, "Üretim tamam": bool(row.is_archived), "Teslim": d.get("delivery","Teslim edilmedi"),
+                    "Tutar (₺)": price, "Tahsilat (₺)": paid, "Kalan (₺)": max(0, price-paid),
+                    "Fatura": d.get("invoice",""), "Ödeme vadesi": d.get("due","")})
+  return pd.DataFrame(records)
+
+
+def wf_pick_job(jobs, key):
+  text = st.text_input("İş / müşteri / iş numarası ara", key=key+"_search")
+  filtered = jobs
+  if text.strip():
+    q = text.strip().casefold()
+    filtered = jobs[jobs.apply(lambda r: q in f"{r.id} {r.customer} {r.job_name}".casefold(), axis=1)]
+  if filtered.empty:
+    st.info("Eşleşen iş yok.")
+    return None
+  ids = [int(x) for x in filtered.id]
+  labels = {int(r.id): f"#{r.id} · {r.customer} · {r.job_name}" for _, r in filtered.iterrows()}
+  selected = st.selectbox("İş seçin", ids, format_func=lambda x: labels[x], key=key)
+  return filtered[filtered.id == selected].iloc[0]
+
+
+def wf_clone_form(row, prefix):
+  with st.expander("📋 Benzer iş oluştur"):
+    st.caption("Malzeme, ölçü, çizim ve işlem planı kopyalanır. Yeni işin gerçekleşen süreleri, fiyatı ve tahsilatı sıfır başlar.")
+    with st.form(prefix+"_clone"):
+      customer = st.text_input("Müşteri", value=str(row.customer or ""))
+      name = st.text_input("Yeni iş / parça adı", value=str(row.job_name or ""))
+      deadline = st.text_input("Yeni termin", placeholder="GG.AA.YYYY")
+      if st.form_submit_button("Benzer işi iş planına ekle"):
+        if not customer.strip() or not name.strip():
+          st.warning("Müşteri ve iş adı gerekli.")
+        else:
+          new_id = wf_clone(int(row.id), customer, name, deadline)
+          st.success(f"Yeni iş oluşturuldu: #{new_id}")
+
+
+def wf_job_card(row):
+  job_id = int(row.id)
+  raw = row.get("workflow_data") or "{}"
+  data = wf_load(raw)
+  st.subheader(f"#{job_id} · {row.job_name}")
+  st.caption(f"{row.customer} · {row.material or 'Malzeme belirtilmedi'} · Termin: {row.deadline or 'Belirtilmedi'}")
+  if data.get("source_job"):
+    st.info(f"Benzer iş kaynağı: #{data['source_job']} · Eski fiyat: {data.get('reference_price',0):,.2f} ₺ · Eski kayıtlı süre: {data.get('reference_actual_minutes',0):g} dk")
+  if row.get("notes"):
+    st.write("**Ustaya not:**", row["notes"])
+  tabs = st.tabs(["🛠 İşlem sırası", "💰 Maliyet", "📐 Çizim revizyonları", "🚚 Teslim / Tahsilat"])
+  with tabs[0]:
+    st.caption("Satır sırası imalat sırasıdır. Yeni işlem eklemek için tablonun en altındaki + satırını kullanın. Süreler bu işin tamamı içindir.")
+    columns = ["name","state","planned_min","actual_min","hourly"]
+    stages = pd.DataFrame(data.get("stages", []), columns=columns)
+    if stages.empty:
+      stages = pd.DataFrame([dict(name="",state="Sırada",planned_min=0.0,actual_min=0.0,hourly=0.0)])
+    with st.form(f"route_{job_id}"):
+      edited = st.data_editor(stages, num_rows="dynamic", hide_index=True, use_container_width=True,
+        column_config={"name":st.column_config.TextColumn("İşlem / tezgâh",required=True),
+          "state":st.column_config.SelectboxColumn("Durum",options=WF_STATES,required=True),
+          "planned_min":st.column_config.NumberColumn("Tahmini dk",min_value=0.0),
+          "actual_min":st.column_config.NumberColumn("Gerçek dk",min_value=0.0),
+          "hourly":st.column_config.NumberColumn("Saat maliyeti ₺",min_value=0.0)})
+      blocker = st.selectbox("Bekleme nedeni", WF_BLOCKERS, index=WF_BLOCKERS.index(data.get("blocker","Yok")) if data.get("blocker","Yok") in WF_BLOCKERS else 0)
+      block_note = st.text_input("Bekleme açıklaması / beklenen kişi", value=data.get("block_note",""))
+      if st.form_submit_button("İşlem planını kaydet",type="primary"):
+        try:
+          items=[]
+          for record in edited.to_dict("records"):
+            if pd.isna(record.get("name")) or not str(record.get("name","")).strip():
+              continue
+            state = record.get("state")
+            if state not in WF_STATES:
+              raise ValueError("Her işlem için geçerli durum seçin.")
+            items.append(dict(name=str(record["name"]).strip(),state=state,
+              **{c: wf_number(0 if pd.isna(record.get(c)) else record.get(c)) for c in columns[2:]}))
+          updated = {**data,"stages":items,"blocker":blocker,"block_note":block_note.strip()}
+          if wf_save(job_id, raw, updated):
+            _perf_rerun()
+        except ValueError as exc:
+          st.warning(str(exc))
+    st.caption("İşlem durumları iş planındaki genel durumu otomatik değiştirmez. Tüm üretim bitince mevcut iş planından HAZIR seçin.")
+  with tabs[1]:
+    st.caption("Planlanan ve gerçekleşen işleme süreleri İşlem sırası sekmesinden gelir. Saat maliyetine işçilik, elektrik ve tel gibi giderleri dahil edin; aynı gideri ayrıca eklemeyin. KDV hariçtir.")
+    with st.form(f"cost_card_{job_id}"):
+      a,b=st.columns(2)
+      mp=a.number_input("Tahmini malzeme ₺",min_value=0.0,value=wf_number(data.get("material_plan")))
+      ma=b.number_input("Gerçek malzeme ₺",min_value=0.0,value=wf_number(data.get("material_actual")))
+      ep=a.number_input("Tahmini dış işlem / diğer ₺",min_value=0.0,value=wf_number(data.get("external_plan")))
+      ea=b.number_input("Gerçek dış işlem / diğer ₺",min_value=0.0,value=wf_number(data.get("external_actual")))
+      if st.form_submit_button("Maliyet bilgilerini kaydet"):
+        if wf_save(job_id,raw,{**data,"material_plan":mp,"material_actual":ma,"external_plan":ep,"external_actual":ea}):
+          _perf_rerun()
+    planned, actual = wf_cost(data)
+    price=wf_number(row.price if pd.notna(row.price) else 0)
+    a,b,c=st.columns(3)
+    a.metric("Tahmini maliyet",f"{planned:,.2f} ₺")
+    b.metric("Girilen gerçek maliyet",f"{actual:,.2f} ₺",delta=f"{actual-planned:+,.2f} ₺",delta_color="inverse")
+    c.metric("Satış − girilen maliyet",f"{price-actual:,.2f} ₺" if price else "Satış fiyatı girin")
+    st.caption("Sonuç, girilmiş giderlerle sınırlıdır; eksik süre/gider varsa kesin kâr değildir. Eski arşiv süreleri bu hesaba otomatik eklenmez.")
+  with tabs[2]:
+    st.caption("Yeni çizimler eski dosyaları silmez. İndirirken revizyonu seçin; güncel sürüm ayrıca iş planının dosya ikonunda görünür.")
+    paths,names=parse_drawing_files(row.get("drawing_path"),row.get("drawing_name"))
+    if paths and st.button("📥 Güncel çizimleri indir",key=f"card_dl_{job_id}"):
+      show_drawing_download(paths,names,f"is_{job_id}.zip",f"card_file_{job_id}")
+    if data.get("drawing_note"):
+      st.info(data["drawing_note"])
+    with st.form(f"revision_{job_id}",clear_on_submit=True):
+      label=st.text_input("Revizyon kodu / açıklaması",placeholder="Ör: Rev B — delik çapı değişti")
+      uploads=st.file_uploader("Yeni teknik resimler",accept_multiple_files=True)
+      if st.form_submit_button("Yeni revizyonu güncel yap"):
+        if not uploads or not label.strip():
+          st.warning("Revizyon açıklaması ve en az bir dosya gerekli.")
+        else:
+          with get_db_connection() as conn:
+            current=read_sql_query("SELECT drawing_path,drawing_name,workflow_data FROM work_orders WHERE id=%s FOR UPDATE",conn,(job_id,))
+            if current.empty:
+              st.error("İş bulunamadı.")
+            else:
+              current=current.iloc[0]; d=wf_load(current.workflow_data)
+              revisions=list(d.get("revisions",[]))
+              pp,nn=parse_drawing_files(current.drawing_path,current.drawing_name)
+              if pp:
+                revisions.append(dict(label=d.get("current_revision","Önceki çizim"),paths=pp,names=nn,date=get_now().strftime("%d.%m.%Y %H:%M")))
+              pp,nn=[],[]
+              for f in uploads:
+                path="db:"+uuid4().hex; name=Path(f.name).name
+                _perf_call("Sorgu",conn.execute,"INSERT INTO drawing_files(path,name,content) VALUES (%s,%s,%s)",(path,name,f.getvalue()))
+                pp.append(path);nn.append(name)
+              d.update(revisions=revisions,current_revision=label.strip(),drawing_note="")
+              _perf_call("Sorgu",conn.execute,"UPDATE work_orders SET drawing_path=%s,drawing_name=%s,workflow_data=%s WHERE id=%s",
+                (*format_drawing_files(pp,nn),wf_dump(d),job_id))
+              _perf_call("Kayıt onayı",conn.commit)
+              _perf_rerun()
+    for i,revision in enumerate(reversed(data.get("revisions",[]))):
+      with st.expander(f"{revision.get('label','Önceki sürüm')} · {revision.get('date','')}"):
+        if st.button("📥 Bu sürümü indir",key=f"rev_dl_{job_id}_{i}"):
+          show_drawing_download(revision["paths"],revision["names"],f"is_{job_id}_rev_{i}.zip",f"rev_file_{job_id}_{i}")
+    st.caption("Güncel sürüm: "+data.get("current_revision","İlk yükleme"))
+  with tabs[3]:
+    wf_delivery_form(row,data,raw)
+  wf_clone_form(row,f"card_{job_id}")
+
+
+def wf_delivery_form(row,data,raw):
+  job_id=int(row.id)
+  with st.form(f"delivery_{job_id}"):
+    delivery_options=["Teslim edilmedi","Kısmen teslim edildi","Teslim edildi"]
+    delivery=st.selectbox("Teslim durumu",delivery_options,index=delivery_options.index(data.get("delivery","Teslim edilmedi")))
+    a,b=st.columns(2)
+    date=a.text_input("Teslim tarihi",value=data.get("delivery_date",""),placeholder="GG.AA.YYYY")
+    receiver=b.text_input("Teslim alan / irsaliye",value=data.get("receiver",""))
+    invoice=a.text_input("Fatura numarası / açıklama",value=data.get("invoice",""))
+    due=b.text_input("Ödeme vadesi",value=data.get("due",""),placeholder="GG.AA.YYYY")
+    price=a.number_input("Anlaşılan toplam satış bedeli ₺ (KDV hariç)",min_value=0.0,value=wf_number(row.price if pd.notna(row.price) else 0))
+    paid=b.number_input("Toplam alınan ödeme ₺ (KDV hariç karşılığı)",min_value=0.0,value=wf_number(data.get("paid")))
+    st.caption("Kısmi ödeme için bugüne kadar alınan toplamı girin. Bu bölüm muhasebe programının yerini tutmaz.")
+    if st.form_submit_button("Teslim / ödeme bilgilerini kaydet",type="primary"):
+      d={**data,"delivery":delivery,"delivery_date":date.strip(),"receiver":receiver.strip(),"invoice":invoice.strip(),"due":due.strip(),"paid":paid}
+      count=wf_execute("UPDATE work_orders SET workflow_data=%s,price=%s WHERE id=%s AND COALESCE(workflow_data,'{}')=%s AND price IS NOT DISTINCT FROM %s",
+        (wf_dump(d),price,job_id,raw or "{}",None if pd.isna(row.price) else float(row.price)))
+      if count==1:
+        _perf_rerun()
+      else:
+        st.error("Kayıt başka ekranda değişti. Sayfayı yenileyin; bilgileriniz kaydedilmedi.")
+
+
+def wf_quotes():
+  st.header("🧾 Teklifler")
+  st.caption("Teklif oluşturun, müşteri onayını kaydedin ve tek işlemle iş planına aktarın. Fiyat işin toplam bedelidir; KDV hariçtir.")
+  with st.expander("➕ Yeni teklif"):
+    with st.form("new_quote",clear_on_submit=True):
+      a,b=st.columns(2)
+      customer=a.text_input("Müşteri *");name=b.text_input("İş / parça adı *")
+      material=a.text_input("Malzeme");dimensions=b.text_input("Ölçü")
+      quantity=a.number_input("Adet",min_value=1,value=1,step=1)
+      price=b.number_input("Toplam teklif ₺",min_value=0.0,value=0.0)
+      deadline=a.text_input("Termin");valid=b.text_input("Teklif geçerlilik tarihi")
+      route=st.text_area("İşlem sırası (her satıra bir işlem)",placeholder="Torna\nDik işleme\nTaşlama")
+      notes=st.text_area("Teklif kapsamı / notlar")
+      if st.form_submit_button("Teklifi oluştur",type="primary"):
+        if not customer.strip() or not name.strip():
+          st.warning("Müşteri ve iş adı gerekli.")
+        else:
+          payload=dict(customer=customer.strip().upper(),name=name.strip(),material=material,dimensions=dimensions,
+                       quantity=quantity,price=price,deadline=deadline,valid=valid,route=route,notes=notes,state="Taslak")
+          wf_execute("INSERT INTO workshop_quotes(payload,created_at) VALUES (%s,%s)",(wf_dump(payload),get_now().strftime("%d.%m.%Y %H:%M")))
+          _perf_rerun()
+  quotes=wf_query("SELECT * FROM workshop_quotes ORDER BY id DESC")
+  if quotes.empty:
+    st.info("Henüz teklif yok.");return
+  texts={int(r.id):f"T-{r.id} · {wf_load(r.payload)['customer']} · {wf_load(r.payload)['name']}" for _,r in quotes.iterrows()}
+  selected=st.selectbox("Teklif seçin",list(texts),format_func=lambda x:texts[x])
+  row=quotes[quotes.id==selected].iloc[0];q=wf_load(row.payload)
+  st.write(f"**{q['customer']} · {q['name']}**")
+  if pd.notna(row.job_id):
+    st.success(f"İş planına aktarıldı: #{int(row.job_id)}. Güncel fiyat ve iş bilgilerini iş kartından düzenleyin.")
+    st.write(f"Aktarım anındaki teklif: {q.get('price',0):,.2f} ₺")
+  else:
+    with st.form(f"quote_edit_{selected}"):
+      states=["Taslak","Gönderildi","Onaylandı","Reddedildi"]
+      state=st.selectbox("Teklif durumu",states,index=states.index(q.get("state","Taslak")))
+      customer=st.text_input("Müşteri",value=q.get("customer",""))
+      name=st.text_input("İş / parça adı",value=q.get("name",""))
+      material=st.text_input("Malzeme",value=q.get("material",""))
+      dimensions=st.text_input("Ölçü",value=q.get("dimensions",""))
+      quantity=st.number_input("Adet",min_value=1,value=int(q.get("quantity",1)),step=1)
+      price=st.number_input("Toplam teklif bedeli ₺",min_value=0.0,value=wf_number(q.get("price")))
+      valid=st.text_input("Geçerlilik tarihi",value=q.get("valid",""))
+      route=st.text_area("İşlem sırası",value=q.get("route",""))
+      deadline=st.text_input("Termin",value=q.get("deadline",""))
+      notes=st.text_area("Kapsam / notlar",value=q.get("notes",""))
+      if st.form_submit_button("Teklifi güncelle"):
+        if not customer.strip() or not name.strip():
+          st.warning("Müşteri ve iş adı gerekli.")
+        else:
+          count=wf_execute("UPDATE workshop_quotes SET payload=%s WHERE id=%s AND payload=%s AND job_id IS NULL",
+               (wf_dump({**q,"state":state,"price":price,"deadline":deadline,"notes":notes,
+                         "customer":customer.strip().upper(),"name":name.strip(),"material":material,
+                         "dimensions":dimensions,"quantity":quantity,"valid":valid,"route":route}),selected,row.payload))
+          if count: _perf_rerun()
+          else: st.error("Teklif değişmiş. Sayfayı yenileyin.")
+    if q.get("state")=="Onaylandı" and st.button("✅ Onaylı teklifi iş planına aktar",type="primary"):
+      job_id=wf_accept_quote(selected)
+      st.success(f"İş planına aktarıldı: #{job_id}")
+  st.caption("Malzeme: "+q.get("material","")+" · Ölçü: "+q.get("dimensions","")+" · Adet: "+str(q.get("quantity",1)))
+  st.text(q.get("route", ""))
+
+
+def wf_screen(menu):
+  if menu=="🧾 Teklifler":
+    wf_quotes();return
+  jobs=wf_query("SELECT * FROM work_orders ORDER BY id DESC")
+  if menu=="🗂️ İş Kartları":
+    st.header("🗂️ İş Kartları")
+    st.caption("Özel işin planı, çizimi, maliyeti ve teslim bilgisi tek yerde. Alanları doldurduktan sonra ilgili Kaydet düğmesine basın.")
+    scope=st.radio("İşler",["Aktif","Arşiv","Tümü"],horizontal=True)
+    filtered=jobs if scope=="Tümü" else jobs[jobs.is_archived==(1 if scope=="Arşiv" else 0)]
+    row=wf_pick_job(filtered,"work_card")
+    if row is not None: wf_job_card(row)
+    return
+  ledger=wf_ledger(jobs)
+  if menu=="🏠 Atölye Özeti":
+    st.header("Atölyene genel bakış")
+    st.caption("Özel işler · İşlem sırası · Teslim ve ödeme takibi")
+    if ledger.empty:
+      st.info("İlk işini İş Planı bölümünden ekleyebilirsin.");return
+    a,b,c,d=st.columns(4)
+    a.metric("Aktif iş",int((~ledger["Üretim tamam"]).sum()))
+    b.metric("Bekleyen iş",int(((ledger["Bekleme"]!="Yok") & ~ledger["Üretim tamam"]).sum()))
+    c.metric("Teslim bekleyen",int((ledger["Üretim tamam"] & (ledger["Teslim"]!="Teslim edildi")).sum()))
+    d.metric("Açık bakiye",f"{ledger['Kalan (₺)'].sum():,.0f} ₺")
+    st.subheader("Aktif işlerin sıradaki adımı")
+    st.dataframe(ledger[~ledger["Üretim tamam"]][["İş No","Müşteri","İş","Sonraki işlem","Bekleme","Termin"]],hide_index=True,use_container_width=True)
+  elif menu=="⏳ Bekleyen İşler":
+    st.header("⏳ Bekleyen İşler")
+    st.caption("Bekleme nedenlerini İş Kartları → İşlem sırası bölümünden güncelleyebilirsin.")
+    if ledger.empty: st.info("Henüz iş yok.");return
+    waiting=ledger[(ledger["Bekleme"]!="Yok") & ~ledger["Üretim tamam"]]
+    if waiting.empty: st.success("Bekleme nedeni girilmiş aktif iş yok.")
+    else: st.dataframe(waiting[["İş No","Müşteri","İş","Bekleme","Bekleme notu","Termin"]],hide_index=True,use_container_width=True)
+  elif menu=="🚚 Teslim ve Tahsilat":
+    st.header("🚚 Teslim ve Tahsilat")
+    if ledger.empty: st.info("Henüz iş yok.");return
+    mode=st.radio("Göster",["Tümü","Teslim bekleyen","Ödeme bekleyen"],horizontal=True)
+    shown=ledger
+    if mode=="Teslim bekleyen": shown=ledger[ledger["Üretim tamam"] & (ledger["Teslim"]!="Teslim edildi")]
+    if mode=="Ödeme bekleyen": shown=ledger[ledger["Kalan (₺)"]>0]
+    st.dataframe(shown.drop(columns=["Bekleme","Bekleme notu","Sonraki işlem"]),hide_index=True,use_container_width=True)
+    row=wf_pick_job(jobs[jobs.id.isin(shown["İş No"])],"delivery_pick")
+    if row is not None:
+      wf_delivery_form(row,wf_load(row.get("workflow_data")),row.get("workflow_data") or "{}")
+
+
+# ---------------------------------------------------------
 # SOL MENÜ & LOGO & YEDEKLEME & GERİ YÜKLEME
 # ---------------------------------------------------------
 if os.path.exists("LOGO VE İSİM.JPG"):
@@ -994,7 +1487,12 @@ st.sidebar.markdown("<div style='height: 5px;'></div>", unsafe_allow_html=True)
 menu = st.sidebar.radio(
     "SİSTEM KATEGORİLERİ",
     [
+        "🏠 Atölye Özeti",
         "📊 İş Planı (Canlı Tablo)",
+        "🗂️ İş Kartları",
+        "🧾 Teklifler",
+        "⏳ Bekleyen İşler",
+        "🚚 Teslim ve Tahsilat",
         "🛠️ Tezgah Parkı Durumu",
         "🔥 Isıl İşlem Takip",
         "🌊 Su Jeti (WJG) Takip",
@@ -1042,7 +1540,7 @@ with st.sidebar.expander("📥 Excel Yedeğinden Geri Yükle", expanded=False):
       if success:
         st.success(msg)
         st.toast(msg, icon="🟢")
-        st.rerun()
+        _perf_rerun()
       else:
         st.error(msg)
 
@@ -1052,15 +1550,16 @@ st.sidebar.caption("Excel yedeği teknik resimlerin içeriğini kapsamaz.")
 # ---------------------------------------------------------
 # ÜST LOGO & BAŞLIK ALANI (ANA SAYFA)
 # ---------------------------------------------------------
-col_header_logo, col_header_title = st.columns([1, 5])
-with col_header_logo:
-  if os.path.exists("LOGO VE İSİM.JPG"):
+if os.path.exists("LOGO VE İSİM.JPG"):
+  col_header_logo, col_header_title = st.columns([1, 5])
+  with col_header_logo:
     st.image("LOGO VE İSİM.JPG", width=180)
+else:
+  col_header_title = st.container()
 with col_header_title:
-  st.markdown("### ⚙️ EŞME MAKİNA MES - ÜRETİM & FASON YÖNETİM SİSTEMİ")
+  st.markdown("### EŞME MAKİNA · ATÖLYE YÖNETİMİ")
   st.caption(
-      "Canlı İş Planlama, Tezgah Takibi, Isıl İşlem ve Otomatik Kayıtlı İmalat"
-      " Hafızası"
+      "Özel işleriniz için planlama, teklif, üretim ve teslim takibi"
   )
 
 st.divider()
@@ -1068,7 +1567,9 @@ st.divider()
 # ---------------------------------------------------------
 # 1. İŞ PLANINI GÖRÜNTÜLE VE YÖNET
 # ---------------------------------------------------------
-if menu == "📊 İş Planı (Canlı Tablo)":
+if menu in ("🏠 Atölye Özeti","🗂️ İş Kartları","🧾 Teklifler","⏳ Bekleyen İşler","🚚 Teslim ve Tahsilat"):
+  wf_screen(menu)
+elif menu == "📊 İş Planı (Canlı Tablo)":
   if mobile_view:
     st.caption("📱 Telefon / Tablet görünümü • İşleri aşağıdaki kartlardan düzenleyebilirsiniz.")
   st.markdown("## 📊 İŞ PLANI")
@@ -1119,7 +1620,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
       if submitted and cust and job:
         now_str = get_now().strftime("%d.%m.%Y %H:%M")
         conn = get_db_connection()
-        conn.execute(
+        _perf_call("Sorgu", conn.execute, 
             """
                     INSERT INTO work_orders 
                     (customer, job_name, material, dimensions, supplier, quantity, heat_treatment, status, machine_name, deadline, notes, start_time, created_at, is_archived)
@@ -1141,10 +1642,10 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                 now_str,
             ),
         )
-        conn.commit()
+        _perf_call("Kayıt onayı", conn.commit)
         conn.close()
         st.toast("İş sipariş planına eklendi!", icon="🚀")
-        st.rerun()
+        _perf_rerun()
 
   conn = get_db_connection()
   df_active = read_sql_query(
@@ -1357,17 +1858,28 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                       for up_file in up_files:
                         orig_name = Path(up_file.name).name
                         s_path = "db:" + uuid4().hex
-                        conn.execute("INSERT INTO drawing_files(path,name,content) VALUES (%s,%s,%s)",
+                        _perf_call("Sorgu", conn.execute, "INSERT INTO drawing_files(path,name,content) VALUES (%s,%s,%s)",
                                      (s_path, orig_name, up_file.getvalue()))
                         new_paths.append(s_path)
                         new_names.append(orig_name)
+                      current = _perf_call("Sorgu", conn.execute, "SELECT drawing_path,drawing_name,workflow_data FROM work_orders WHERE id=%s FOR UPDATE",(int(j_id),)).fetchone()
+                      if current is None:
+                        raise ValueError("İş bulunamadı; dosyalar kaydedilmedi.")
+                      old_paths,old_names = parse_drawing_files(current[0],current[1])
+                      history = wf_load(current[2])
+                      if old_paths:
+                        revisions=list(history.get("revisions",[]))
+                        revisions.append(dict(label=history.get("current_revision","Önceki çizim"), paths=old_paths,names=old_names,date=get_now().strftime("%d.%m.%Y %H:%M")))
+                        history["revisions"]=revisions
+                      history["current_revision"]="Yükleme "+get_now().strftime("%d.%m.%Y %H:%M")
                       path_json, name_json = format_drawing_files(new_paths, new_names)
-                      conn.execute("UPDATE work_orders SET drawing_path=%s, drawing_name=%s WHERE id=%s",
-                                   (path_json, name_json, int(j_id)))
+                      _perf_call("Sorgu", conn.execute, "UPDATE work_orders SET drawing_path=%s, drawing_name=%s,workflow_data=%s WHERE id=%s",
+                                   (path_json, name_json, wf_dump(history), int(j_id)))
+                      _perf_call("Kayıt onayı",conn.commit)
                     st.toast(
                         f"{len(new_paths)} dosya başarıyla yüklendi!", icon="🟢"
                     )
-                    st.rerun()
+                    _perf_rerun()
   
               with ic2:
                 if has_files:
@@ -1389,11 +1901,12 @@ if menu == "📊 İş Planı (Canlı Tablo)":
               with ic3:
                 if st.button("🗑️", key=f"del_{j_id}", help="Bu işi sil"):
                   conn = get_db_connection()
-                  conn.execute("DELETE FROM work_orders WHERE id = %s", (j_id,))
-                  conn.commit()
+                  _perf_call("Sorgu", conn.execute, "UPDATE workshop_quotes SET job_id=NULL WHERE job_id=%s", (j_id,))
+                  _perf_call("Sorgu", conn.execute, "DELETE FROM work_orders WHERE id = %s", (j_id,))
+                  _perf_call("Kayıt onayı", conn.commit)
                   conn.close()
                   st.toast("İş silindi!", icon="🗑️")
-                  st.rerun()
+                  _perf_rerun()
   
   
   
@@ -1428,7 +1941,7 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                       else f"{hours} Saat {minutes} Dk"
                   )
   
-              conn.execute(
+              _perf_call("Sorgu", conn.execute, 
                   """
                               UPDATE work_orders 
                               SET job_name=%s, material=%s, supplier=%s, dimensions=%s, quantity=%s, heat_treatment=%s, status='HAZIR / TAMAMLANDI', machine_name='YOK / ATANMADI', deadline=%s, notes=%s, is_archived=1, end_time=%s, duration_str=%s
@@ -1448,15 +1961,15 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                       j_id,
                   ),
               )
-              conn.commit()
+              _perf_call("Kayıt onayı", conn.commit)
               conn.close()
               st.toast(
                   "🎉 Parça 'HAZIR' durumuna getirildi ve arşive aktarıldı!",
                   icon="🎉",
               )
-              st.rerun()
+              _perf_rerun()
             else:
-              conn.execute(
+              _perf_call("Sorgu", conn.execute, 
                   """
                               UPDATE work_orders
                               SET job_name=%s, material=%s, supplier=%s, dimensions=%s, quantity=%s, heat_treatment=%s, status=%s, machine_name=%s, deadline=%s, notes=%s
@@ -1476,10 +1989,10 @@ if menu == "📊 İş Planı (Canlı Tablo)":
                       j_id,
                   ),
               )
-              conn.commit()
+              _perf_call("Kayıt onayı", conn.commit)
               conn.close()
               st.toast("Değişiklikler otomatik kaydedildi", icon="💾")
-              st.rerun()
+              _perf_rerun()
 
   else:
     st.info(
@@ -1635,7 +2148,7 @@ elif menu == "🔥 Isıl İşlem Takip":
       if submitted and ht_customer and ht_prod:
         now_s = get_now().strftime("%d.%m.%Y %H:%M")
         conn = get_db_connection()
-        conn.execute(
+        _perf_call("Sorgu", conn.execute, 
             """
                     INSERT INTO heat_treatment
                     (sent_date, supplier_firm, customer, product_code_name, quantity, material, hardness, weight_kg, process_type, status, invoice_info, created_at)
@@ -1656,10 +2169,10 @@ elif menu == "🔥 Isıl İşlem Takip":
                 now_s,
             ),
         )
-        conn.commit()
+        _perf_call("Kayıt onayı", conn.commit)
         conn.close()
         st.toast("Isıl işlem kaydı başarıyla eklendi!", icon="🔥")
-        st.rerun()
+        _perf_rerun()
 
   conn = get_db_connection()
   df_ht = read_sql_query(
@@ -1736,7 +2249,7 @@ elif menu == "🔥 Isıl İşlem Takip":
     if not edited_ht.equals(display_ht):
       conn = get_db_connection()
       for _, row in edited_ht.iterrows():
-        conn.execute(
+        _perf_call("Sorgu", conn.execute, 
             """
                     UPDATE heat_treatment
                     SET sent_date=%s, supplier_firm=%s, customer=%s, product_code_name=%s, quantity=%s, material=%s, hardness=%s, weight_kg=%s, process_type=%s, status=%s, invoice_info=%s
@@ -1757,10 +2270,10 @@ elif menu == "🔥 Isıl İşlem Takip":
                 row["id"],
             ),
         )
-      conn.commit()
+      _perf_call("Kayıt onayı", conn.commit)
       conn.close()
       st.toast("Isıl işlem tablosu otomatik kaydedildi", icon="💾")
-      st.rerun()
+      _perf_rerun()
 
     ht_list = [
         f"{r['id']} - {r['customer']} ({r['product_code_name']})"
@@ -1777,11 +2290,11 @@ elif menu == "🔥 Isıl İşlem Takip":
     ):
       del_id = int(sel_ht_del.split(" - ")[0])
       conn = get_db_connection()
-      conn.execute("DELETE FROM heat_treatment WHERE id = %s", (del_id,))
-      conn.commit()
+      _perf_call("Sorgu", conn.execute, "DELETE FROM heat_treatment WHERE id = %s", (del_id,))
+      _perf_call("Kayıt onayı", conn.commit)
       conn.close()
       st.toast("Isıl işlem kaydı silindi!", icon="🗑️")
-      st.rerun()
+      _perf_rerun()
   else:
     st.info("Henüz eklenmiş ısıl işlem kaydı bulunmuyor.")
 
@@ -1829,7 +2342,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
       if submitted_wjg and wjg_customer and wjg_part:
         now_s = get_now().strftime("%d.%m.%Y %H:%M")
         conn = get_db_connection()
-        conn.execute(
+        _perf_call("Sorgu", conn.execute, 
             """
                     INSERT INTO wjg_waterjet
                     (sent_date, customer, part_name, part_code, dimensions, order_qty, received_qty, unit_price, invoice_info, status, notes, created_at)
@@ -1849,10 +2362,10 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 now_s,
             ),
         )
-        conn.commit()
+        _perf_call("Kayıt onayı", conn.commit)
         conn.close()
         st.toast("Su Jeti kesim kaydı eklendi!", icon="🌊")
-        st.rerun()
+        _perf_rerun()
 
   conn = get_db_connection()
   df_wjg = read_sql_query(
@@ -1925,7 +2438,7 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
     if not edited_wjg.equals(display_wjg):
       conn = get_db_connection()
       for _, row in edited_wjg.iterrows():
-        conn.execute(
+        _perf_call("Sorgu", conn.execute, 
             """
                     UPDATE wjg_waterjet
                     SET sent_date=%s, customer=%s, part_name=%s, part_code=%s, dimensions=%s, order_qty=%s, received_qty=%s, unit_price=%s, status=%s, invoice_info=%s
@@ -1945,10 +2458,10 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
                 row["id"],
             ),
         )
-      conn.commit()
+      _perf_call("Kayıt onayı", conn.commit)
       conn.close()
       st.toast("Su jeti tablosu otomatik kaydedildi", icon="💾")
-      st.rerun()
+      _perf_rerun()
 
     wjg_list = [
         f"{r['id']} - {r['customer']} ({r['part_name']})"
@@ -1965,11 +2478,11 @@ elif menu == "🌊 Su Jeti (WJG) Takip":
     ):
       del_id = int(sel_wjg_del.split(" - ")[0])
       conn = get_db_connection()
-      conn.execute("DELETE FROM wjg_waterjet WHERE id = %s", (del_id,))
-      conn.commit()
+      _perf_call("Sorgu", conn.execute, "DELETE FROM wjg_waterjet WHERE id = %s", (del_id,))
+      _perf_call("Kayıt onayı", conn.commit)
       conn.close()
       st.toast("Su jeti kaydı silindi!", icon="🗑️")
-      st.rerun()
+      _perf_rerun()
   else:
     st.info("Henüz eklenmiş su jeti kesim kaydı bulunmuyor.")
 
@@ -2090,7 +2603,7 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
           )
           if save_arch_btn:
             conn = get_db_connection()
-            conn.execute(
+            _perf_call("Sorgu", conn.execute, 
                 """
                             UPDATE work_orders
                             SET dik_time=%s, torna_time=%s, tel_time=%s, uni_time=%s, price=%s, notes=%s
@@ -2106,11 +2619,12 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
                     arch_id,
                 ),
             )
-            conn.commit()
+            _perf_call("Kayıt onayı", conn.commit)
             conn.close()
             st.toast("Arşiv bilgileri başarıyla güncellendi!", icon="💾")
-            st.rerun()
+            _perf_rerun()
 
+        wf_clone_form(r, f"archive_{arch_id}")
         st.markdown("---")
 
         paths, names = parse_drawing_files(r["drawing_path"], r["drawing_name"])
@@ -2126,23 +2640,23 @@ elif menu == "📚 İmalat Hafızası (Arşiv)":
         with col_b1:
           if st.button("🔄 İş Planına Geri Taşı", key=f"restore_{arch_id}"):
             conn = get_db_connection()
-            conn.execute(
+            _perf_call("Sorgu", conn.execute, 
                 "UPDATE work_orders SET is_archived = 0, status = 'DİK İŞLEME"
                 " SIRADA' WHERE id = %s",
                 (arch_id,),
             )
-            conn.commit()
+            _perf_call("Kayıt onayı", conn.commit)
             conn.close()
             st.toast("İş tekrar canlı plana aktarıldı!", icon="🔄")
-            st.rerun()
+            _perf_rerun()
         with col_b2:
           if st.button("🗑️ Arşivden Kalıcı Sil", key=f"arch_del_{arch_id}"):
             conn = get_db_connection()
-            conn.execute("DELETE FROM work_orders WHERE id = %s", (arch_id,))
-            conn.commit()
+            _perf_call("Sorgu", conn.execute, "DELETE FROM work_orders WHERE id = %s", (arch_id,))
+            _perf_call("Kayıt onayı", conn.commit)
             conn.close()
             st.toast("Arşiv kaydı silindi!", icon="🗑️")
-            st.rerun()
+            _perf_rerun()
   else:
     st.info("Arşivde henüz tamamlanmış iş bulunmuyor.")
 
@@ -2510,14 +3024,14 @@ elif menu == "💬 Atölye Sohbeti":
     if sent and user_n and msg_t:
       now_c = get_now().strftime("%d.%m.%Y %H:%M")
       conn = get_db_connection()
-      conn.execute(
+      _perf_call("Sorgu", conn.execute, 
           "INSERT INTO chat_messages (user_name, message, created_at) VALUES"
           " (%s, %s, %s)",
           (user_n.strip(), msg_t.strip(), now_c),
       )
-      conn.commit()
+      _perf_call("Kayıt onayı", conn.commit)
       conn.close()
-      st.rerun()
+      _perf_rerun()
 
   st.subheader("📜 Son Mesajlar")
   if not df_chat.empty:
@@ -2536,16 +3050,27 @@ elif menu == "💬 Atölye Sohbeti":
                   st.warning("Mesaj boş bırakılamaz.")
                 else:
                   with get_db_connection() as conn:
-                    conn.execute("UPDATE chat_messages SET message=%s WHERE id=%s",
+                    _perf_call("Sorgu", conn.execute, "UPDATE chat_messages SET message=%s WHERE id=%s",
                                  (edited_message.strip(), message_id))
-                  st.rerun()
+                  _perf_rerun()
         with delete_col:
           with st.popover("🗑️", help="Mesajı sil"):
             st.caption("Bu mesaj silinsin mi?")
             if st.button("Mesajı sil", key=f"delete_chat_{message_id}"):
               with get_db_connection() as conn:
-                conn.execute("DELETE FROM chat_messages WHERE id=%s", (message_id,))
-              st.rerun()
+                _perf_call("Sorgu", conn.execute, "DELETE FROM chat_messages WHERE id=%s", (message_id,))
+              _perf_rerun()
       st.divider()
   else:
     st.info("Henüz sohbet mesajı yok.")
+
+_perf_finish("Tamamlandı")
+with st.sidebar.expander("⏱️ Hız ölçümü", expanded=False):
+  st.caption("İlk açılıştan sonra 3–4 normal işlem yapın. Bir işlem iki satır oluşturabilir: "
+             "yeniden çalıştırma ve tamamlanma süreleri birlikte değerlendirilir. "
+             "Bu tablo sunucu sürelerini ölçer; cihazın çizim süresi ve internet aktarımı dahil değildir. "
+             "İlk açılış kurulum/ısınma içerir. Veriler yalnızca bu oturumda tutulur.")
+  st.dataframe(pd.DataFrame(st.session_state.get("_perf_history", [])), hide_index=True)
+  st.download_button("📥 Ölçüm raporunu indir",
+                     pd.DataFrame(st.session_state.get("_perf_history", [])).to_csv(index=False).encode("utf-8-sig"),
+                     file_name="hiz_olcumu.csv", mime="text/csv", on_click="ignore")
